@@ -8,7 +8,7 @@ The labels for the crop types come from different sources and have been summaris
 
 | Attempt | Fields  | Year | Level| Crops | Ref.|
 | :-----: | :-: | :-: |  :-: | :-: |:-: |
-| Bretagne | < 610T | 2017 | S2 L1C/L2A | barley, wheat, rapeseed, corn, sunflower, orchards, nuts, meadows| [[1]](#https://breizhcrops.org) |
+| Bretagne | < 610T | 2017 | S2 L1C/L2A | barley, wheat, rapeseed, corn, sunflower, orchards, nuts, meadows| [[1]](#http://breizhcrops.org) |
 | Bavaria | 2400 | 2016-2018 | S2 L1C/L2A| maize, wheet, rapeseed, barley, potato, sugar beet| |
 | Kenya| ≈ 3000 | 2019 | S2 L1C/L2A | maize, cassava, common bean, soybean | [[2]](#https://mlhub.earth) |
 | Uzbekistan | < 8196| 2016-2018 | S2 L1C/L2A| cotton, wheat, rice, maize, orchards, vineyards, alfalfa| [[3]](#https://www.nature.com/articles/s41597-020-00591-2)|
