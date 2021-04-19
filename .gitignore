@@ -1,0 +1,14 @@
+
+
+#ignore virtual env and logs
+env/
+logs/
+data/cropdata/France/*
+data/cropdata/Kenya/*
+.env
+
+
+
+#keep folder
+!data/cropdata/France/.gitkeep 
+!data/cropdata/Kenya/.gitkeep 
