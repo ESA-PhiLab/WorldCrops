@@ -33,7 +33,7 @@ install requirements
 
 ## Add additional data
 
-The script 'download_ee.py' uses Sentinel Hub to download Sentinel data. More regions are welcome to be added.
+The script 'download_sh.py' uses Sentinel Hub to download Sentinel data. More regions are welcome to be added.
 
 
 ## Install
