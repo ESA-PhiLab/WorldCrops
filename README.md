@@ -45,3 +45,10 @@ The script 'download_ee.py' uses Sentinel Hub to download Sentinel data. More re
 The script installs all crop type data. If the data is downloaded again, the data for France or Kenya should be deleted. The data for Bavaria and Uzbekistan have already been added.
 The Kenya data comes from Radiant Earth which is why an api key is needed. All keys are summarized under 'credentials.py'. Only the MLHUB_API_KEY for https://mlhub.earth/ is needed! 
 The French dataset is downloaded via https://breizhcrops.org/, which also offers some additional great features.
+
+
+## References
+
+[1] Breizhcrops, https://breizhcrops.org <br/>
+[2] Radiant Earth Foundation, https://www.radiant.earth/ <br/>
+[3] Remelgado, R., Zaitov, S., Kenjabaev, S. et al. A crop type dataset for consistent land cover classification in Central Asia. Sci Data 7, 250 (2020). https://doi.org/10.1038/s41597-020-00591-2
