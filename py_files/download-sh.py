@@ -1,13 +1,17 @@
 # %%
+import credentials
 import pandas as pd
 from uuid import uuid4
 import geopandas as gpd
 
 from sentinelhub.time_utils import parse_time
-from sentinelhub import FisRequest, BBox, Geometry, CRS, WcsRequest, CustomUrlParam, DataCollection, HistogramType
+
 
 from geodataframefilter import *
 from credentials import *
+
+from sentinelhub import FisRequest, BBox, Geometry, CRS, WcsRequest, CustomUrlParam, DataCollection, HistogramType
+
 
 # %%
 
@@ -55,9 +59,10 @@ def add_cloud_info(dataframe):
 
 
 # %%
-time_interval = ('2016-02-01', '2016-05-01')
+
+# Load data for central asia
 centralasia = gpd.read_file(
-    "/Volumes/Untitled 1/CropTypes2.0/data/cropdata/CentralAsia/CAWa_CropType_samples.shp")
+    "../data/cropdata/CentralAsia/CAWa_CropType_samples.shp")
 
 print("GPD INFO:", centralasia.describe())
 
@@ -65,34 +70,80 @@ print("GPD INFO:", centralasia.describe())
 gpd_filtered = GeodataFrameFilter(centralasia, 30000, True)
 gpd_filtered = gpd_filtered.filter()
 
+# take only 2016-2018
+gpd_filtered = gpd_filtered[(gpd_filtered.year == '2016') | (
+    gpd_filtered.year == '2017') | (gpd_filtered.year == '2018')]
+
 # print(gpd_filtered.describe())
+#gpd_filtered = gpd_filtered.head(2)
+
+
+# Load data for kenya
+kenya1 = gpd.read_file(
+    '/Volumes/Untitled 1/CropTypes2.0/data/cropdata/Kenya/ref_african_crops_kenya_01_labels/ref_african_crops_kenya_01_labels_00/labels.geojson')
+kenya2 = gpd.read_file(
+    '../data/cropdata/Kenya/ref_african_crops_kenya_01_labels/ref_african_crops_kenya_01_labels_01/labels.geojson')
+kenya3 = gpd.read_file(
+    '../data/cropdata/Kenya/ref_african_crops_kenya_01_labels/ref_african_crops_kenya_01_labels_02/labels.geojson')
+kenya_merged = pd.concat([kenya1, kenya2, kenya3], axis=0)
+
+
+# filter only Multipolygons
+gpd_filtered = GeodataFrameFilter(centralasia, 0, True)
+gpd_filtered = gpd_filtered.filter()
+
+# %%
+_tmp = pd.DataFrame()
+year_list = ['2018']
+timespan = {"2018": ["2018-04-01", "2018-05-01"]}
+
+# %%
+for year in year_list:
+    _tmp = pd.concat([_tmp, gpd_filtered[gpd_filtered.year == year]], axis=0)
+gpd_filtered = _tmp
+print(gpd_filtered.describe())
+
+# load data for bavaria
+# %%
+gpd_filtered.head()
+
+# %%
+
+L1C_df = pd.DataFrame()
+L2A_df = pd.DataFrame()
+time_interval = tuple()
+gpd_filtered['id'] = gpd_filtered.index.to_series().map(lambda x: uuid4().hex)
 
 gpd_filtered = gpd_filtered.head(2)
 
-# %%
-L1C_df = pd.DataFrame()
-L2A_df = pd.DataFrame()
-gpd_filtered['id'] = gpd_filtered.index.to_series().map(lambda x: uuid4().hex)
-
 for (idx, row) in gpd_filtered.iterrows():
+
+    if str(row.year) in year_list:
+        time_interval = (str(timespan[str(row.year)][0]), str(
+            timespan[str(row.year)][1]))
+
+    else:
+        continue
+
+    print(time_interval)
 
     fis_request_L1C = FisRequest(
         data_collection=DataCollection.SENTINEL2_L1C,
-        layer='AGRICULTURE_L1C',
+        layer=credentials.SHUB_LAYER_NAME1,
         geometry_list=[Geometry((row.geometry), CRS.WGS84)],
         time=time_interval,
         resolution='10m',
-        data_folder='./data',
+        data_folder='data/jsondata',
         config=config
     )
 
     fis_request_L2A = FisRequest(
-        data_collection=DataCollection.SENTINEL2_L1C,
-        layer='AGRICULTURE_L2A',
+        data_collection=DataCollection.SENTINEL2_L2A,
+        layer=credentials.SHUB_LAYER_NAME2,
         geometry_list=[Geometry((row.geometry), CRS.WGS84)],
         time=time_interval,
         resolution='10m',
-        data_folder='./data',
+        data_folder='data/jsondata',
         config=config
     )
 
@@ -105,8 +156,10 @@ for (idx, row) in gpd_filtered.iterrows():
 
     field_df = add_cloud_info(df)
     field_df['id'] = row.id
+    field_df['year'] = row.year
     field_df2 = add_cloud_info(df2)
     field_df2['id'] = row.id
+    field_df2['year'] = row.year
 
     L1C_df = pd.concat([L1C_df, field_df], axis=0)
     L2A_df = pd.concat([L2A_df, field_df2], axis=0)
@@ -115,23 +168,16 @@ for (idx, row) in gpd_filtered.iterrows():
 # save geodataframe with id
 # channel 0: clouds, channel 1: NDVI, channel 2: NDWI
 # channel 4-15 Bands
-gpd_filtered.to_file("CentralAsia/CAWa_CropType_samples_applied.shp")
+gpd_filtered.to_file(
+    "data/CAWa_CropType_filtered.shp")
 # save merged dataframe with same id
 L1C_df.reset_index(drop=True, inplace=True)
-L1C_df.to_excel('CentralAsia/CAWa_CropType_samples_id_S2_L1C.xlsx')
+L1C_df.to_excel(
+    'data/CAWa_CropType_filtered_S2_L1C.xlsx')
 
 L2A_df.reset_index(drop=True, inplace=True)
-L2A_df.to_excel('CentralAsia/CAWa_CropType_samples_id_S2_L2A.xlsx')
+L2A_df.to_excel(
+    'data/CAWa_CropType_filtered_S2_L2A.xlsx')
 
-
-# %%
-
-
-# %%
-# %%
-
-# %%
-
-# %%
 
 # %%
