@@ -25,16 +25,19 @@ def raw_transform(input_timeseries):
 
 def france_download():
     regions = ["belle-ile", "frh01", "frh02", "rfh03", "frh04"]
-    regions = [regions[1]]
+    regions = [regions[0]]
 
-    for _region in regions:
-        BreizhCrops(region=_region, transform=raw_transform, level="L1C")
-        BreizhCrops(region=_region, transform=raw_transform, level="L2A")
-        #region_2A = BreizhCrops(region=_region, transform=raw_transform, level="L2A")
+    try:
+        for _region in regions:
+            BreizhCrops(region=_region, transform=raw_transform, level="L1C")
+            BreizhCrops(region=_region, transform=raw_transform, level="L2A")
+            #region_2A = BreizhCrops(region=_region, transform=raw_transform, level="L2A")
 
-        # region_1C.download_geodataframe()
-        # region_1C.download_h5_database()
-    print('France downloaded')
+            # region_1C.download_geodataframe()
+            # region_1C.download_h5_database()
+        print('France downloaded')
+    except Exception as e:
+        pass
 
 
 def kenya_download():
@@ -103,9 +106,16 @@ for path in dic_struct:
     elif path == dic_struct[1]:
         if len(os.listdir(_root + path)) == 0:
             print("Directory is empty")
+
             kenya_download()
+
         else:
-            print("Directory is not empty....Skipping Kenya download")
+            _labels = Path(
+                _root + path + '/ref_african_crops_kenya_01_labels.tar.gz')
+            if not _labels.is_file():
+                kenya_download()
+            else:
+                print("Directory is not empty....Skipping Kenya download")
 
         os.chdir(_root)
     else:

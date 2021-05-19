@@ -71,6 +71,7 @@ def download_from_sh(args):
     timespan = json.loads(args.timespan)
     year_list = list(timespan.keys())
 
+    # print(timespan)
     # check if input file exists
     if not Path(input_path).is_file():
         print('The file does not exist')
@@ -91,17 +92,19 @@ def download_from_sh(args):
     gpd_filtered = GeodataFrameFilter(_data, area, timespan)
     gpd_filtered = gpd_filtered.filter()
 
+    #print('Length:', len(gpd_filtered))
+
     # filter geodataframe with years
     _tmp = pd.DataFrame()
     for year in year_list:
         _tmp = pd.concat(
-            [_tmp, gpd_filtered.loc[(gpd_filtered.year == year])], axis=0)
+            [_tmp, gpd_filtered.loc[(gpd_filtered.year == year)]], axis=0)
     gpd_filtered = _tmp
-    gpd_filtered = gpd_filtered[gpd_filtered.year == '2018']
 
-    gpd_filtered = gpd_filtered.head(2)
     gpd_filtered['id'] = gpd_filtered.index.to_series().map(
         lambda x: uuid4().hex)
+
+    #gpd_filtered = gpd_filtered.head(2)
 
     if 'year' not in gpd_filtered.columns:
         print('Year column in geodataframe does not exists..Please add column year')
@@ -142,7 +145,7 @@ def download_from_sh(args):
         df = fis_data_to_dataframe(fis_data)
         df2 = fis_data_to_dataframe(fis_data2)
 
-        print('here')
+        # print(df.head())
 
         field_df = add_cloud_info(df)
         field_df['id'] = row.id
@@ -153,7 +156,7 @@ def download_from_sh(args):
 
         L1C_df = pd.concat([L1C_df, field_df], axis=0)
         L2A_df = pd.concat([L2A_df, field_df2], axis=0)
-        print('.', end=" ")
+        print('.', sep=' ', end='', flush=True)
 
     # save geodataframe with id
     # channel 0: clouds, channel 1: NDVI, channel 2: NDWI
@@ -178,7 +181,7 @@ def main(args_list=None):
     parser.add_argument(
         '-f', '--file', help='shapefile input file', type=str, required=True)
     parser.add_argument(
-        '-o', '--output', help='output path for files', type=str, required=True)
+        '-o', '--output', help='output directory name e.g. -o test', type=str, required=True)
     parser.add_argument(
         '-t', '--timespan', help='JSON with year and timespan for every year e.g. "{"2016": ["01-01-2016", "01-12-2016"]}"', type=str, default='{"2016": ["01-01-2016", "01-2-2016"]}', required=True)
 
@@ -200,6 +203,17 @@ def main(args_list=None):
         args = parser.parse_args(args_list)
     else:
         args = parser.parse_args()
+
+    exec(open("credentials.py").read())
+    print("Sentinel Hub Configuration", config)
+
+    # create directory
+    try:
+        if not os.path.isdir(args.output):
+            os.makedirs(args.output)
+    except OSError as e:
+        if e.errno != 17:
+            print("Error:", e)
 
     download_from_sh(args)
 
