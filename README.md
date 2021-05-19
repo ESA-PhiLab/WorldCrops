@@ -33,7 +33,7 @@ install requirements
 
 ## Add additional data
 
-The script 'download.py' uses Sentinel Hub to download Sentinel data. More regions are welcome to be added.
+The script 'download.py' uses Sentinel Hub to download Sentinel data. More regions are welcome to be added. Configure your layer with Sentinel Hub and add your API keys to Credentials.py 
 
 	python download.py -f ../data/cropdata/CentralAsia/CAWa_CropType_samples.shp -t '{"2018": ["01-01-2018", "30-12-2018"],"2017": ["01-01-2017", "30-12-2017"],"2016": ["01-01-2016", "30-12-2016"]}' -o centralasia
 
