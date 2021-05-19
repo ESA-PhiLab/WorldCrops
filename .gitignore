@@ -2,13 +2,23 @@
 
 #ignore virtual env and logs
 env/
+env_wc/*
 logs/
 data/cropdata/France/*
-data/cropdata/Kenya/*
-.env
+data/cropdata/Kenya/ref_african_crops_kenya_01_labels.tar.gz
+data/cropdata/Kenya/ref_african_crops_kenya_01_source.tar.gz
+data/cropdata/Kenya/ref_african_crops_kenya_01_labels/*
+data/cropdata/Kenya/ref_african_crops_kenya_01_source/*
 
+.env
+.env_wc
+
+py_files/credentials.py
+py_files/__pycache__/*
+hidden/*
+.vscode/*
 
 
 #keep folder
-!data/cropdata/France/.gitkeep 
-!data/cropdata/Kenya/.gitkeep 
+#!data/cropdata/France/.gitkeep 
+#!data/cropdata/Kenya/.gitkeep 
