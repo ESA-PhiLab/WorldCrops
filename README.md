@@ -1,4 +1,4 @@
-![ScreenShot](/docs/crop_world.png)
+![ScreenShot](/docs/crops.png)
 
 
 # Overview
