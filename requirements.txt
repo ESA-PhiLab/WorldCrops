@@ -10,6 +10,7 @@ Pillow
 scikit-learn
 contextily
 breizhcrops
+tqdm==4.56.0
 radiant-mlhub
 dask
 Py6S
@@ -17,3 +18,9 @@ pyshp
 openpyxl
 earthengine-api
 sentinelhub
+jupyter
+
+netCDF4
+xarray
+descartes
+salem
