@@ -9,6 +9,7 @@ data/cropdata/Kenya/ref_african_crops_kenya_01_labels.tar.gz
 data/cropdata/Kenya/ref_african_crops_kenya_01_source.tar.gz
 data/cropdata/Kenya/ref_african_crops_kenya_01_labels/*
 data/cropdata/Kenya/ref_african_crops_kenya_01_source/*
+data/cropdata/Bavaria/yields/backup/*
 
 .env
 .env_wc
