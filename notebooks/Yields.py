@@ -115,7 +115,7 @@ wcs_request = WcsRequest(
     config=config
 )
 
-images = wcs_request.get_data()
+images = wcs_request.get_data(save_data=True)
 
 fig, axs = plt.subplots((len(images) + 2) // 3, 3, figsize=(10, 20))
 for idx, (image, time) in enumerate(zip(images, wcs_request.get_dates())):
@@ -126,3 +126,20 @@ fig.tight_layout()
 
 
 # %%
+for idx, value in filtered_fields.iterrows():
+    time_interval = ('2018-03-01', '2018-08-01')
+
+    wcs_request = WcsRequest(
+        data_collection=DataCollection.SENTINEL2_L2A,
+        layer=SHUB_LAYER_NAME2,
+        bbox=BBox((value.geometry), CRS.WGS84),
+        time=time_interval,
+        resx='10m',
+        resy='10m',
+        custom_url_params={CustomUrlParam.SHOWLOGO: False},
+        config=config
+    )
+
+    images = wcs_request.get_data(save_data=True)
+
+    # %%
