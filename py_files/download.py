@@ -104,7 +104,7 @@ def download_from_sh(args):
     gpd_filtered['id'] = gpd_filtered.index.to_series().map(
         lambda x: uuid4().hex)
 
-    #gpd_filtered = gpd_filtered.head(2)
+    gpd_filtered = gpd_filtered.head(2)
 
     if 'year' not in gpd_filtered.columns:
         print('Year column in geodataframe does not exists..Please add column year')
@@ -206,14 +206,6 @@ def main(args_list=None):
 
     exec(open("credentials.py").read())
     print("Sentinel Hub Configuration", config)
-
-    # create directory
-    try:
-        if not os.path.isdir(args.output):
-            os.makedirs(args.output)
-    except OSError as e:
-        if e.errno != 17:
-            print("Error:", e)
 
     download_from_sh(args)
 
