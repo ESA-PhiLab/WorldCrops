@@ -88,7 +88,11 @@ def download_from_sh(args):
     L2A_df = pd.DataFrame()
     time_interval = tuple()
     _data = gpd.read_file(input_path)
+
+    # make sure data is in the correct format
     _data.to_crs(epsg=4326, inplace=True)
+    _data['year'] = _data['year'].astype(str)
+
     gpd_filtered = GeodataFrameFilter(_data, area, timespan)
     gpd_filtered = gpd_filtered.filter()
 
