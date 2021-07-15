@@ -1,0 +1,18 @@
+{
+    "headers": {
+        "Content-Type": "application/json",
+        "User-Agent": "sentinelhub-py/v3.3.1"
+    },
+    "payload": {
+        "crs": "EPSG:4326",
+        "geometry": "POLYGON ((39.16548532467834 65.1296747987531, 39.16775825857719 65.12138316918761, 39.16913010388208 65.12197563404206, 39.16673687790948 65.13032501885033, 39.16548532467834 65.1296747987531))",
+        "layer": "AGRICULTURE_L1C",
+        "maxcc": 100.0,
+        "resolution": "10m",
+        "service": "fis",
+        "time": "2016-01-01T00:00:00Z/2016-12-30T23:59:59Z",
+        "warnings": false
+    },
+    "timestamp": "2021-07-14T16:19:35.608913",
+    "url": "https://services.sentinel-hub.com/ogc/fis/5e98cacf-5c35-4e3b-9674-52c8241a01f1"
+}

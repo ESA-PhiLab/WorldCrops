@@ -108,7 +108,7 @@ def download_from_sh(args):
     gpd_filtered['id'] = gpd_filtered.index.to_series().map(
         lambda x: uuid4().hex)
 
-    gpd_filtered = gpd_filtered.head(2)
+    #gpd_filtered = gpd_filtered.head(2)
 
     if 'year' not in gpd_filtered.columns:
         print('Year column in geodataframe does not exists..Please add column year')
