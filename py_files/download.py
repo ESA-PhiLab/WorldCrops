@@ -143,8 +143,8 @@ def download_from_sh(args):
         )
 
         # Takes about 30s, to avoid redownloading we are saving results
-        fis_data = fis_request_L1C.get_data(save_data=True)
-        fis_data2 = fis_request_L2A.get_data(save_data=True)
+        fis_data = fis_request_L1C.get_data(redownload=True, save_data=True)
+        fis_data2 = fis_request_L2A.get_data(redownload=True, save_data=True)
 
         df = fis_data_to_dataframe(fis_data)
         df2 = fis_data_to_dataframe(fis_data2)

@@ -62,8 +62,9 @@ def add_cloud_info(dataframe):
 
 # Load data for central asia
 centralasia = gpd.read_file(
-    "../data/cropdata/CentralAsia/CAWa_CropType_samples.shp")
+    "../data/cropdata/Kenya/Kenya_labels_PlantVillage.shp")
 
+centralasia.to_crs(epsg=4326, inplace=True)
 print("GPD INFO:", centralasia.describe())
 
 # filter out small fields < 3 hectare and Multipolygons
@@ -89,15 +90,19 @@ kenya_merged = pd.concat([kenya1, kenya2, kenya3], axis=0)
 
 
 # filter only Multipolygons
-gpd_filtered = GeodataFrameFilter(centralasia, 0, True)
+gpd_filtered = GeodataFrameFilter(centralasia, 0, False)
 gpd_filtered = gpd_filtered.filter()
 
 # %%
+gpd_filtered.head()
+# %%
 _tmp = pd.DataFrame()
-year_list = ['2018']
-timespan = {"2018": ["2018-04-01", "2018-05-01"]}
+year_list = ['2019']
+timespan = {"2019": ["2019-04-01", "2019-05-01"]}
 
 # %%
+gpd_filtered['year'] = gpd_filtered['year'].astype(str)
+
 for year in year_list:
     _tmp = pd.concat([_tmp, gpd_filtered[gpd_filtered.year == year]], axis=0)
 gpd_filtered = _tmp
@@ -105,8 +110,23 @@ print(gpd_filtered.describe())
 
 # load data for bavaria
 # %%
-gpd_filtered.head()
 
+
+# %%
+
+config = SHConfig()
+config.instance_id = '5e98cacf-5c35-4e3b-9674-52c8241a01f1'
+config.sh_client_id = '93c443b0-b60d-4ba3-b8e2-f05b9d5c47ac'
+config.sh_client_secret = ')!sd9B)JKEF?eemyWf*8U|93iPXo5F:#mmbw/YWM'
+
+
+if config.instance_id == '':
+    print("Warning! To use FIS functionality, please configure the `instance_id`.")
+
+
+# Configure your layer in the dashboard (configuration utility)
+SHUB_LAYER_NAME1 = 'AGRICULTURE_L1C'
+SHUB_LAYER_NAME2 = 'AGRICULTURE_L2A'
 # %%
 
 L1C_df = pd.DataFrame()
@@ -129,7 +149,7 @@ for (idx, row) in gpd_filtered.iterrows():
 
     fis_request_L1C = FisRequest(
         data_collection=DataCollection.SENTINEL2_L1C,
-        layer=credentials.SHUB_LAYER_NAME1,
+        layer=SHUB_LAYER_NAME1,
         geometry_list=[Geometry((row.geometry), CRS.WGS84)],
         time=time_interval,
         resolution='10m',
@@ -139,7 +159,7 @@ for (idx, row) in gpd_filtered.iterrows():
 
     fis_request_L2A = FisRequest(
         data_collection=DataCollection.SENTINEL2_L2A,
-        layer=credentials.SHUB_LAYER_NAME2,
+        layer=SHUB_LAYER_NAME2,
         geometry_list=[Geometry((row.geometry), CRS.WGS84)],
         time=time_interval,
         resolution='10m',
@@ -180,4 +200,8 @@ L2A_df.to_excel(
     'data/CAWa_CropType_filtered_S2_L2A.xlsx')
 
 
+# %%
+L1C_df.head(30)
+# %%
+list(timespan.keys())
 # %%
