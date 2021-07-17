@@ -190,12 +190,12 @@ list(timespan.keys())
 # %%
 L2A_df.id
 # %%
-testfeld= L2A_df[L2A_df.id == '5af6ffdbd7be406d8af07f8a8cc5a340']
+testfeld = L2A_df[L2A_df.id == '5af6ffdbd7be406d8af07f8a8cc5a340']
 testfeld[testfeld.channel == 2]['mean'].plot()
 # %%
 testfeld = testfeld[testfeld.clouds != 1]
 # %%
-#testfeld.set_index('date',inplace=True)
+# testfeld.set_index('date',inplace=True)
 testfeld[testfeld.channel == 2]['mean'].plot()
 
 # %%
