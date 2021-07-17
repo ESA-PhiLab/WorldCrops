@@ -62,13 +62,13 @@ def add_cloud_info(dataframe):
 
 # Load data for central asia
 centralasia = gpd.read_file(
-    "../data/cropdata/Kenya/Kenya_labels_PlantVillage.shp")
+    "../data/cropdata/Bavaria/Test_area.shp")
 
 centralasia.to_crs(epsg=4326, inplace=True)
 print("GPD INFO:", centralasia.describe())
 
-# filter out small fields < 3 hectare and Multipolygons
-gpd_filtered = GeodataFrameFilter(centralasia, 30000, True)
+# filter out small fields < 1 hectare and Multipolygons
+gpd_filtered = GeodataFrameFilter(centralasia, 10000, True)
 gpd_filtered = gpd_filtered.filter()
 
 # take only 2016-2018
@@ -97,8 +97,8 @@ gpd_filtered = gpd_filtered.filter()
 gpd_filtered.head()
 # %%
 _tmp = pd.DataFrame()
-year_list = ['2019']
-timespan = {"2019": ["2019-04-01", "2019-05-01"]}
+year_list = ['2018']
+timespan = {"2018": ["2018-02-01", "2018-09-01"]}
 
 # %%
 gpd_filtered['year'] = gpd_filtered['year'].astype(str)
@@ -149,9 +149,9 @@ for (idx, row) in gpd_filtered.iterrows():
         config=config
     )
 
-    # Takes about 30s, to avoid redownloading we are saving results
-    fis_data = fis_request_L1C.get_data(redownload=True, save_data=True)
-    fis_data2 = fis_request_L2A.get_data(redownload=True, save_data=True)
+    # channel 0: clouds, channel 1: dataMask, channel 2: NDVI, channel 3: NDWI
+    fis_data = fis_request_L1C.get_data(redownload=True)
+    fis_data2 = fis_request_L2A.get_data(redownload=True)
 
     df = fis_data_to_dataframe(fis_data)
     df2 = fis_data_to_dataframe(fis_data2)
@@ -168,8 +168,9 @@ for (idx, row) in gpd_filtered.iterrows():
 
 
 # save geodataframe with id
-# channel 0: clouds, channel 1: dataMask, channel 2: NDVI, channel 3: NDWI
-# channel 4-15 Bands
+# channel 0 is in clouds columns
+# channel 1: dataMask, channel 2: NDVI, channel 3: NDWI
+# Rest channels: Bands
 gpd_filtered.to_file(
     "data/CAWa_CropType_filtered.shp")
 # save merged dataframe with same id
@@ -187,7 +188,18 @@ L2A_df.head(3)
 # %%
 list(timespan.keys())
 # %%
-df2[df2.channel == 2]
+L2A_df.id
 # %%
-L2A_df[L2A_df.channel == 3]['mean'].max()
+testfeld= L2A_df[L2A_df.id == '5af6ffdbd7be406d8af07f8a8cc5a340']
+testfeld[testfeld.channel == 2]['mean'].plot()
+# %%
+testfeld = testfeld[testfeld.clouds != 1]
+# %%
+#testfeld.set_index('date',inplace=True)
+testfeld[testfeld.channel == 2]['mean'].plot()
+
+# %%
+testfeld.head()
+# %%
+len(testfeld[testfeld.channel == 1]['mean'])
 # %%

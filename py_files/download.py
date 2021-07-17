@@ -142,9 +142,9 @@ def download_from_sh(args):
             config=config
         )
 
-        # Takes about 30s, to avoid redownloading we are saving results
-        fis_data = fis_request_L1C.get_data(redownload=True, save_data=True)
-        fis_data2 = fis_request_L2A.get_data(redownload=True, save_data=True)
+        # channel 0: clouds, channel 1: dataMask, channel 2: NDVI, channel 3: NDWI
+        fis_data = fis_request_L1C.get_data(redownload=True)
+        fis_data2 = fis_request_L2A.get_data(redownload=True)
 
         df = fis_data_to_dataframe(fis_data)
         df2 = fis_data_to_dataframe(fis_data2)
@@ -163,8 +163,9 @@ def download_from_sh(args):
         print('.', sep=' ', end='', flush=True)
 
     # save geodataframe with id
-    # channel 0: clouds, channel 1: NDVI, channel 2: NDWI
-    # channel 4-15 Bands
+    # channel 0 is in clouds columns (1 stands for cloud/ 0 no clouds)
+    # channel 1: dataMask, channel 2: NDVI, channel 3: NDWI
+    # Rest channels: Bands
     gpd_filtered.to_file(
         output_path + "/labels_new.shp")
     # save merged dataframe with same id
