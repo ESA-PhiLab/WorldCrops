@@ -108,25 +108,7 @@ for year in year_list:
 gpd_filtered = _tmp
 print(gpd_filtered.describe())
 
-# load data for bavaria
-# %%
 
-
-# %%
-
-config = SHConfig()
-config.instance_id = '5e98cacf-5c35-4e3b-9674-52c8241a01f1'
-config.sh_client_id = '93c443b0-b60d-4ba3-b8e2-f05b9d5c47ac'
-config.sh_client_secret = ')!sd9B)JKEF?eemyWf*8U|93iPXo5F:#mmbw/YWM'
-
-
-if config.instance_id == '':
-    print("Warning! To use FIS functionality, please configure the `instance_id`.")
-
-
-# Configure your layer in the dashboard (configuration utility)
-SHUB_LAYER_NAME1 = 'AGRICULTURE_L1C'
-SHUB_LAYER_NAME2 = 'AGRICULTURE_L2A'
 # %%
 
 L1C_df = pd.DataFrame()
@@ -168,8 +150,8 @@ for (idx, row) in gpd_filtered.iterrows():
     )
 
     # Takes about 30s, to avoid redownloading we are saving results
-    fis_data = fis_request_L1C.get_data(save_data=True)
-    fis_data2 = fis_request_L2A.get_data(save_data=True)
+    fis_data = fis_request_L1C.get_data(redownload=True, save_data=True)
+    fis_data2 = fis_request_L2A.get_data(redownload=True, save_data=True)
 
     df = fis_data_to_dataframe(fis_data)
     df2 = fis_data_to_dataframe(fis_data2)
@@ -186,7 +168,7 @@ for (idx, row) in gpd_filtered.iterrows():
 
 
 # save geodataframe with id
-# channel 0: clouds, channel 1: NDVI, channel 2: NDWI
+# channel 0: clouds, channel 1: dataMask, channel 2: NDVI, channel 3: NDWI
 # channel 4-15 Bands
 gpd_filtered.to_file(
     "data/CAWa_CropType_filtered.shp")
@@ -201,7 +183,11 @@ L2A_df.to_excel(
 
 
 # %%
-L1C_df.head(30)
+L2A_df.head(3)
 # %%
 list(timespan.keys())
+# %%
+df2[df2.channel == 2]
+# %%
+L2A_df[L2A_df.channel == 3]['mean'].max()
 # %%
