@@ -64,20 +64,17 @@ def add_cloud_info(dataframe):
 centralasia = gpd.read_file(
     "../data/cropdata/Bavaria/Test_area.shp")
 
-centralasia.to_crs(epsg=4326, inplace=True)
+
 print("GPD INFO:", centralasia.describe())
-
-# filter out small fields < 1 hectare and Multipolygons
-gpd_filtered = GeodataFrameFilter(centralasia, 10000, True)
+centralasia.to_crs(epsg=4326, inplace=True)
+# filter out small fields < 1 hectare (10000) and Multipolygons
+gpd_filtered = GeodataFrameFilter(centralasia, 0, True)
 gpd_filtered = gpd_filtered.filter()
-
-# take only 2016-2018
-gpd_filtered = gpd_filtered[(gpd_filtered.year == '2016') | (
-    gpd_filtered.year == '2017') | (gpd_filtered.year == '2018')]
-
-# print(gpd_filtered.describe())
-#gpd_filtered = gpd_filtered.head(2)
-
+# %%
+gpd_filtered.crs = "EPSG:3856"
+print(gpd_filtered.crs)
+gpd_filtered = gpd_filtered.head(1)
+# %%
 
 # Load data for kenya
 kenya1 = gpd.read_file(
@@ -89,16 +86,10 @@ kenya3 = gpd.read_file(
 kenya_merged = pd.concat([kenya1, kenya2, kenya3], axis=0)
 
 
-# filter only Multipolygons
-gpd_filtered = GeodataFrameFilter(centralasia, 0, False)
-gpd_filtered = gpd_filtered.filter()
-
-# %%
-gpd_filtered.head()
 # %%
 _tmp = pd.DataFrame()
 year_list = ['2018']
-timespan = {"2018": ["2018-02-01", "2018-09-01"]}
+timespan = {"2018": ["2018-01-01", "2018-12-30"]}
 
 # %%
 gpd_filtered['year'] = gpd_filtered['year'].astype(str)
@@ -108,7 +99,10 @@ for year in year_list:
 gpd_filtered = _tmp
 print(gpd_filtered.describe())
 
-
+# %%
+gpd_filtered.head()
+# define y column
+y = 'NC_ant'
 # %%
 
 L1C_df = pd.DataFrame()
@@ -127,22 +121,21 @@ for (idx, row) in gpd_filtered.iterrows():
     else:
         continue
 
-    print(time_interval)
-
     fis_request_L1C = FisRequest(
         data_collection=DataCollection.SENTINEL2_L1C,
         layer=SHUB_LAYER_NAME1,
-        geometry_list=[Geometry((row.geometry), CRS.WGS84)],
+        geometry_list=[Geometry(row.geometry, crs=CRS(gpd_filtered.crs))],
         time=time_interval,
         resolution='10m',
         data_folder='data/jsondata',
         config=config
     )
 
+    print(row.geometry)
     fis_request_L2A = FisRequest(
         data_collection=DataCollection.SENTINEL2_L2A,
         layer=SHUB_LAYER_NAME2,
-        geometry_list=[Geometry((row.geometry), CRS.WGS84)],
+        geometry_list=[Geometry(row.geometry, crs=CRS(gpd_filtered.crs))],
         time=time_interval,
         resolution='10m',
         data_folder='data/jsondata',
@@ -159,9 +152,11 @@ for (idx, row) in gpd_filtered.iterrows():
     field_df = add_cloud_info(df)
     field_df['id'] = row.id
     field_df['year'] = row.year
+    field_df['CropType'] = row[y]
     field_df2 = add_cloud_info(df2)
     field_df2['id'] = row.id
     field_df2['year'] = row.year
+    field_df2['CropType'] = row[y]
 
     L1C_df = pd.concat([L1C_df, field_df], axis=0)
     L2A_df = pd.concat([L2A_df, field_df2], axis=0)
@@ -188,18 +183,18 @@ L2A_df.head(3)
 # %%
 list(timespan.keys())
 # %%
-L2A_df.id
+L2A_df.head()
 # %%
-testfeld = L2A_df[L2A_df.id == '5af6ffdbd7be406d8af07f8a8cc5a340']
-testfeld[testfeld.channel == 2]['mean'].plot()
-# %%
-testfeld = testfeld[testfeld.clouds != 1]
-# %%
-# testfeld.set_index('date',inplace=True)
-testfeld[testfeld.channel == 2]['mean'].plot()
+L2A_df = L2A_df[L2A_df.clouds != 1]
+L2A_df[L2A_df.channel == 2]['mean'].plot()
 
 # %%
-testfeld.head()
+#L2A_df.set_index('date', inplace=True)
+L2A_df[L2A_df.channel == 2]['mean'].plot()
+# %%
+fig, axs = plt.subplots(figsize=(12, 4))
+L2A_df[L2A_df.channel == 2]['mean'].plot(ax=axs)
+plt.savefig('oldapi_ndvi_clouds.png')
 # %%
 len(testfeld[testfeld.channel == 1]['mean'])
 # %%
