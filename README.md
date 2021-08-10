@@ -33,7 +33,7 @@ install requirements
 
 ## Add additional data
 
-The script 'download.py' uses Sentinel Hub to download Sentinel data. More regions are welcome to be added. Configure your layer with Sentinel Hub and add your API keys to credentials.py 
+The script 'download.py' uses Sentinel Hub to download Sentinel data. More regions are welcome to be added. Configure your layer with Sentinel Hub and add your API keys to credentials.py. The download supports the FisRequest and SentinelHubStatistical from Sentinel Hub. 
 
 	python download.py -f ../data/cropdata/CentralAsia/CAWa_CropType_samples.shp -t '{"2018": ["01-01-2018", "30-12-2018"],"2017": ["01-01-2017", "30-12-2017"],"2016": ["01-01-2016", "30-12-2016"]}' -o centralasia
 
@@ -54,3 +54,4 @@ The French dataset is downloaded via https://breizhcrops.org/, which also offers
 [1] Breizhcrops, https://breizhcrops.org <br/>
 [2] Radiant Earth Foundation, https://www.radiant.earth/ <br/>
 [3] Remelgado, R., Zaitov, S., Kenjabaev, S. et al. A crop type dataset for consistent land cover classification in Central Asia. Sci Data 7, 250 (2020). https://doi.org/10.1038/s41597-020-00591-2
+[4] Chair of Plant Nutrition, TUM
