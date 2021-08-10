@@ -53,5 +53,5 @@ The French dataset is downloaded via https://breizhcrops.org/, which also offers
 
 [1] Breizhcrops, https://breizhcrops.org <br/>
 [2] Radiant Earth Foundation, https://www.radiant.earth/ <br/>
-[3] Remelgado, R., Zaitov, S., Kenjabaev, S. et al. A crop type dataset for consistent land cover classification in Central Asia. Sci Data 7, 250 (2020). https://doi.org/10.1038/s41597-020-00591-2
+[3] Remelgado, R., Zaitov, S., Kenjabaev, S. et al. A crop type dataset for consistent land cover classification in Central Asia. Sci Data 7, 250 (2020). https://doi.org/10.1038/s41597-020-00591-2 <br/>
 [4] Chair of Plant Nutrition, TUM
