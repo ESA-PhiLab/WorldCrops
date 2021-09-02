@@ -73,7 +73,7 @@ def download_via_shs(args):
     gpd_filtered.set_crs(epsg=4326, inplace=True)
     gpd_filtered.to_crs(epsg=3857, inplace=True)
 
-    gpd_filtered = gpd_filtered.head(2)
+    #gpd_filtered = gpd_filtered.head(2)
 
     if 'year' not in gpd_filtered.columns:
         print('Year column in geodataframe does not exists..Please add column year')
@@ -129,10 +129,14 @@ def download_via_shs(args):
         #stats = request.get_data(redownload=True)[0]
         all_requests.append(request)
 
-    download_requests = [_request.download_list[0]
-                         for _request in all_requests]
-    client = SentinelHubStatisticalDownloadClient(config=config)
-    stats = client.download(download_requests)
+    try:
+        download_requests = [_request.download_list[0]
+                             for _request in all_requests]
+        client = SentinelHubStatisticalDownloadClient(
+            config=config, n_interval_retries=3)
+        stats = client.download(download_requests)
+    except:
+        print("Download error", sys.exc_info()[0])
 
     _dfs = [stats_to_df(polygon_stats) for polygon_stats in stats]
 
@@ -257,7 +261,7 @@ def download_via_fis(args):
     gpd_filtered.set_crs(epsg=4326, inplace=True)
     gpd_filtered.to_crs(epsg=3857, inplace=True)
 
-    gpd_filtered = gpd_filtered.head(2)
+    #gpd_filtered = gpd_filtered.head(2)
 
     if 'year' not in gpd_filtered.columns:
         print('Year column in geodataframe does not exists..Please add column year')
