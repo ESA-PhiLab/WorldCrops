@@ -104,8 +104,7 @@ def download_via_shs(args):
         }
     }
 
-    # download and save S2 L1C
-    all_requests_L1C = []
+    # download and save S2 data from Sentinel Hub
     for (idx, row) in gpd_filtered.iterrows():
 
         if str(row.year) in year_list:
@@ -121,99 +120,53 @@ def download_via_shs(args):
             resolution=(10, 10)
         )
 
-        request = SentinelHubStatistical(
+        request_L1C = SentinelHubStatistical(
             aggregation=aggregation,
             input_data=[input_data_L1C],
             geometry=Geometry((row.geometry), crs=CRS(gpd_filtered.crs)),
             calculations=histogram_calculations,
             config=config
         )
-        #stats = request.get_data(redownload=True)[0]
-        all_requests_L1C.append(request)
 
-    # download and save S2 L2A from Sentinel Hub
-    all_requests_L2A = []
-
-    for (idx, row) in gpd_filtered.iterrows():
-
-        if str(row.year) in year_list:
-            time_interval = (
-                str(timespan[str(row.year)][0]), str(timespan[str(row.year)][1]))
-        else:
-            continue
-
-        aggregation = SentinelHubStatistical.aggregation(
-            evalscript=evalscript,
-            time_interval=time_interval,
-            aggregation_interval='P1D',
-            resolution=(10, 10)
-        )
-
-        request = SentinelHubStatistical(
+        request_L2A = SentinelHubStatistical(
             aggregation=aggregation,
             input_data=[input_data_L2A],
             geometry=Geometry((row.geometry), crs=CRS(gpd_filtered.crs)),
             calculations=histogram_calculations,
             config=config
         )
-        #stats = request.get_data(redownload=True)[0]
-        all_requests_L2A.append(request)
 
-    # download_requests = [_request.download_list[0]
-    #                     for _request in all_requests_L1C]
-    client = SentinelHubStatisticalDownloadClient(
-        config=config, n_interval_retries=3)
-    for _request in all_requests_L1C:
+        #client = SentinelHubStatisticalDownloadClient(config=config, n_interval_retries=3)
 
         try:
 
-            stats = client.download(_request)
-            _dfs = [stats_to_df(polygon_stats) for polygon_stats in stats]
+            statsL1C = request_L1C.get_data(redownload=True)[0]
+            statsL2A = request_L2A.get_data(redownload=True)[0]
+            df1 = stats_to_df(statsL1C)
+            df2 = stats_to_df(statsL2A)
 
-            # set target column for y values
             if target != 0:
-                for df, crop_type, year, id in zip(_dfs, gpd_filtered[target].values, gpd_filtered.year.values, gpd_filtered.id.values):
-                    df['crop_type'] = crop_type
-                    df['year'] = year
-                    df['id'] = id
+                df1['crop_type'] = row[target]
+                df1['year'] = row.year
+                df1['id'] = row.id
+                df2['crop_type'] = row[target]
+                df2['year'] = row.year
+                df2['id'] = row.id
 
-            L1C_df = pd.concat([L1C_df, _dfs], axis=0)
-            print('#', sep=' ', end='', flush=True)
-        except:
-            print("L1C Download error", sys.exc_info()[0])
-            continue
+            L1C_df = pd.concat([L1C_df, df1], axis=0)
+            L2A_df = pd.concat([L2A_df, df2], axis=0)
 
-    L1C_df.reset_index(drop=True, inplace=True)
-    L1C_df.to_excel(
-        output_path + '/timeseries_L1C.xlsx')
+            L1C_df.reset_index(drop=True, inplace=True)
+            L1C_df.to_excel(output_path + '/timeseries_L1C.xlsx')
 
-    # L2A
-    # download_requests = [_request.download_list[0]
-    #                     for _request in all_requests]
-    for _request in all_requests_L2A:
-
-        try:
-            stats = client.download(_request)
-            _dfs = [stats_to_df(polygon_stats) for polygon_stats in stats]
-
-            # set target column for y values
-            if target != 0:
-                for df, crop_type, year, id in zip(_dfs, gpd_filtered[target].values, gpd_filtered.year.values, gpd_filtered.id.values):
-                    df['crop_type'] = crop_type
-                    df['year'] = year
-                    df['id'] = id
-
-            L2A_df = pd.concat([L2A_df, _dfs], axis=0)
+            L2A_df.reset_index(drop=True, inplace=True)
+            L2A_df.to_excel(output_path + '/timeseries_L2A.xlsx')
 
             print('.', sep=' ', end='', flush=True)
-        except:
-            print("L2A Download error", sys.exc_info()[0])
-            continue
 
-    # save merged dataframe with same id
-    L2A_df.reset_index(drop=True, inplace=True)
-    L2A_df.to_excel(
-        output_path + '/timeseries_L2A.xlsx')
+        except:
+            print("Download error.", sys.exc_info()[0])
+            continue
 
 
 def download_via_fis(args):
