@@ -134,6 +134,7 @@ printConfusionResults(confusion)
 # SimSiam
 ############################################################################
 # Custom DataSet with augmentation
+# augmentation needs to be extended
 
 feature_list = bavaria_train.columns[bavaria_train.columns.str.contains('B')]
 dataset = TimeSeriesDataSet(bavaria_train, feature_list.tolist(), 'NC')
@@ -167,3 +168,4 @@ for i, data in enumerate(dataloader):
 # %%
 # init simsiam and training
 # https://docs.lightly.ai/tutorials/package/tutorial_simsiam_esa.html
+#
