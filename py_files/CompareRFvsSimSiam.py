@@ -169,3 +169,10 @@ for i, data in enumerate(dataloader):
 # init simsiam and training
 # https://docs.lightly.ai/tutorials/package/tutorial_simsiam_esa.html
 #
+#we start with tsai
+#A Transformer-based Framework for Multivariate Time Series Representation
+
+from tsai.all import *
+computer_setup()
+
+
