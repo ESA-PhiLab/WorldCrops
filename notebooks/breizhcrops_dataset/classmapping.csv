@@ -1,0 +1,24 @@
+,id,classname,code
+1,0,barley,ORH
+2,0,barley,ORP
+3,1,wheat,BTH
+4,1,wheat,BTP
+5,2,rapeseed,CZH
+6,2,rapeseed,CZP
+7,3,corn,MID
+8,3,corn,MIE
+9,3,corn,MIS
+10,4,sunflower,TRN
+11,5,orchards,AGR
+12,5,orchards,PFR
+13,5,orchards,PWT
+14,5,orchards,VRG
+15,6,nuts,CAB
+16,6,nuts,CTG
+17,6,nuts,NOS
+18,6,nuts,NOX
+19,6,nuts,PIS
+20,7,permanent meadows,PPH
+21,7,permanent meadows,PRL
+22,8,temporary meadows,PTR
+23,8,temporary meadows,RGA
