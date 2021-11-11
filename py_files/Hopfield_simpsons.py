@@ -78,6 +78,11 @@ imgs = load_simpson_faces('../data/simpsons/', 0, 30)
 Y = imgs.clone().reshape(30,-1).unsqueeze(0) # stored patterns 
 plt.imshow(Y.squeeze(0)[0].reshape(200,200), cmap='gray')
 # %%
+
+Y.shape
+
+# %%
+
 lowres = cv2.resize(np.array(Y.squeeze(0)[0].reshape(200,200)),(50,50), interpolation = cv2.INTER_AREA)
 lowres = cv2.resize(lowres,(200,200), interpolation = cv2.INTER_AREA)
 lowres = np.array(Y.squeeze(0)[0].reshape(200,200))
@@ -149,9 +154,9 @@ get_energy(Z, Y, hopfield.scaling)
 ##########################################
 
 num_workers = 0
-batch_size = 12
+batch_size = 16
 seed = 1
-epochs = 50
+epochs = 3
 input_size = 256
 
 # dimension of the embeddings
@@ -256,7 +261,7 @@ model.projection_mlp = lightly.models.modules.heads.ProjectionHead([
     (num_ftrs, proj_hidden_dim, nn.BatchNorm1d(proj_hidden_dim), nn.ReLU()),
     (proj_hidden_dim, out_dim, nn.BatchNorm1d(out_dim), None)
 ])
-# %%
+
 # SimSiam uses a symmetric negative cosine similarity loss
 criterion = lightly.loss.SymNegCosineSimilarityLoss()
 
@@ -271,15 +276,28 @@ optimizer = torch.optim.SGD(
 )
 # %%
 print('Length of data set: ', len(dataset_train_simsiam), '\n')
-print('Entire data set: ', list(dataloader_train_simsiam), '\n')
+# %%
+print('Entire data set: ', dataloader_train_simsiam.shape, '\n')
 
 # %%
+#visualize one augmentation
+
 #nn.Sequential(*list(resnet.children())[:-1])
-for (x0, x1), _, _ in dataloader_train_simsiam:
+for (x0, x1), test1, test2 in dataloader_train_simsiam:
 
     # move images to the gpu
-    x0 = x0.to(device)
     print(x0.shape)
+    print(test1.shape)
+    print(test2)
+
+def show(img):
+    npimg = img.numpy()
+    plt.imshow(np.transpose(npimg, (1, 2, 0)), interpolation='nearest')
+
+show(x1[0])
+
+# %%
+x1[0].shape
 
 
 # %%
@@ -329,6 +347,13 @@ for e in range(epochs):
     print(f'[Epoch {e:3d}] '
         f'Loss = {avg_loss:.2f} | '
         f'Collapse Level: {collapse_level:.2f} / 1.00')
+
+
+# %%
+#save the model
+
+PATH = "/workspace/WorldCrops/py_files/model"
+torch.save(model, os.path.join(PATH,"simpsons_model"))
 # %%
 embeddings = []
 filenames = []
@@ -420,7 +445,7 @@ def get_scatter_plot_with_thumbnails():
 # get a scatter plot with thumbnail overlays
 get_scatter_plot_with_thumbnails()
 # %%
-example_images = ['1500.png','1501.png']
+example_images = ['1500.png','1501.png','1502.png','1503.png']
 
 def get_image_as_np_array(filename: str):
     """Loads the image with filename and returns it as a numpy array.
@@ -448,7 +473,7 @@ def plot_nearest_neighbors_3x3(example_image: str, i: int):
     """Plots the example image and its eight nearest neighbors.
 
     """
-    n_subplots = 9
+    n_subplots = 4
     # initialize empty figure
     fig = plt.figure()
     fig.suptitle(f"Nearest Neighbor Plot {i + 1}")
@@ -477,3 +502,85 @@ def plot_nearest_neighbors_3x3(example_image: str, i: int):
 for i, example_image in enumerate(example_images):
     plot_nearest_neighbors_3x3(example_image, i)
 # %%
+#load SSL-based model
+_model = torch.load('/workspace/WorldCrops/py_files/model/simpsons_model')
+# %%
+#resnet = torchvision.models.resnet18()
+#nn.Sequential(*list(resnet.children()))
+#nn.Sequential(*list(_model.children())[:-1])
+#backbone with resnet as encoder, projectionhead and without predictionhead
+simsiam_backbone = list(_model.children())[0]
+simsiam_backbone 
+# %%
+#num_ftrs = simsiam_backbone.fc.in_features
+list(_model.children())[0]
+
+# %%
+model = torchvision.models.resnet18(pretrained=True)
+num_ftrs = model.fc.in_features
+model
+
+# %%
+test = nn.Sequential(*list(model.children())[:-1])
+
+# %%
+print(_model.num_ftrs)
+# %%
+simsiam_backbone 
+
+# %%
+#create a linear classifier for finetuning with 1 or 5% labeled data
+#use the learned embeddings and test it
+
+#old Prediction Head of SimSiam
+#(0): Linear(in_features=512, out_features=128, bias=True)
+#(1): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+#(2): ReLU()
+#(3): Linear(in_features=128, out_features=512, bias=True)
+
+import pytorch_lightning as pl
+
+class Classifier(pl.LightningModule):
+    def __init__(self, num_classes):
+        super().__init__()
+        # load our SSL pretrained model
+        _model = torch.load('/workspace/WorldCrops/py_files/model/simpsons_model')
+        #get the trained backbone
+        self.backbone = list(_model.children())[0]
+        #Dimension of the embedding (before the projection head).
+        input_dim = _model.num_ftrs
+
+        # use the pretrained model to classify several simpsons
+        num_target_classes = num_classes
+        self.classifier = nn.Linear(input_dim, num_target_classes)
+
+
+    def forward(self, x):
+        self.backbone.eval()
+        with torch.no_grad():
+            embeddings = self.feature_extractor(x).flatten(1)
+        x = self.classifier(rembeddings)
+        return self.layers(x)
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        x = x.view(x.size(0), -1)
+        y_hat = self.layers(x)
+        loss = self.ce(y_hat, y)
+        self.log('train_loss', loss)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        return
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)
+        return optimizer
+# %%
+test = Classifier(6)
+test
+# %%
+#fine tune model
+model = Classifier(6)
+trainer = Trainer()
+trainer.fit(model)
