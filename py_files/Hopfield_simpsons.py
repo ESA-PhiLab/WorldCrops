@@ -376,6 +376,9 @@ embeddings = torch.cat(embeddings, dim=0)
 embeddings = embeddings.cpu().numpy()
 
 # %%
+list(model.children())
+
+# %%
 # for plotting
 import os
 from PIL import Image
