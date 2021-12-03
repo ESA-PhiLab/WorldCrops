@@ -96,6 +96,7 @@ class Attention_LM(pl.LightningModule):
         y_pred = self.forward(x)
         loss = self.ce(y_pred, y)
         self.log('val_loss', loss)
+        return loss
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
