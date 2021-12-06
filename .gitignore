@@ -14,11 +14,16 @@ data/cropdata/Bavaria/yields/backup/*
 .env
 .env_wc
 
-py_files/credentials.py
-py_files/__pycache__/*
+py_files/download/credentials.py
 hidden/*
 .vscode/*
 
+py_files/lightning_logs
+
+#pychache
+py_files/__pycache__/*
+py_files/model/__pycache__/*
+py_files/processing/__pycache__/*
 
 #keep folder
 #!data/cropdata/France/.gitkeep 
