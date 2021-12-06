@@ -10,7 +10,6 @@ Pillow
 scikit-learn
 contextily
 breizhcrops
-tqdm==4.56.0
 radiant-mlhub
 dask
 Py6S
@@ -24,3 +23,7 @@ netCDF4
 xarray
 descartes
 salem
+
+tqdm==4.56.0
+lightly==1.2.0
+
