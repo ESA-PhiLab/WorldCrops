@@ -19,9 +19,13 @@ hidden/*
 .vscode/*
 
 py_files/lightning_logs
+py_files/experiments/lightning_logs
+py_files/experiments/cifar-10-batches-py
+py_files/experiments/cifar-10-python.tar.gz
 
 #pychache
 py_files/__pycache__/*
+py_files/download/__pycache__/*
 py_files/model/__pycache__/*
 py_files/processing/__pycache__/*
 
