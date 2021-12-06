@@ -44,7 +44,7 @@ class SimSiam(pl.LightningModule):
 
     def forward(self, x):
         # encoder
-        f = self.backbone(x).flatten(start_dim=1)
+        f = self.backbone(x)#.flatten(start_dim=1)
         # embeddings
         z = self.projection_head(f)
         # predictions
@@ -55,8 +55,8 @@ class SimSiam(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         (x0, x1), _, _ = batch
-        x0 = torch.unsqueeze(x0, 1)
-        x1 = torch.unsqueeze(x1, 1)
+        #x0 = torch.unsqueeze(x0, 1)
+        #x1 = torch.unsqueeze(x1, 1)
         z0, p0 = self.forward(x0)
         z1, p1 = self.forward(x1)
         loss = 0.5 * (self.ce(z0, p1) + self.ce(z1, p0))
