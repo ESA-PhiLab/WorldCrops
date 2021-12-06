@@ -18,18 +18,19 @@ import pytorch_lightning as pl
 from torchvision.datasets import CIFAR10
 from torchvision import transforms
 
+import sys
+sys.path.append('./model')
+sys.path.append('..')
 
 import model
-import processing
 from model import *
 from processing import *
 from tsai.all import *
 # %%
 
-x = np.array([[1, 0, 0], [0, 1, 0], [0,0,1]], np.int32)
-
+pwd
 # %%
-np.dot(x,np.array([0, 0.5, 0]))
+
 # %%
 
 
@@ -238,7 +239,7 @@ print(sklearn.metrics.classification_report(y_true.cpu(), y_pred.cpu()))
 # %%
 
 report = pd.DataFrame(sklearn.metrics.classification_report(y_true = y_true.cpu(), y_pred = y_pred.cpu(), output_dict=True)).transpose()
-report.to_csv('classification.csv', index= True)
+report.to_csv('results/classification.csv', index= True)
 # %%
 report
 # %%
