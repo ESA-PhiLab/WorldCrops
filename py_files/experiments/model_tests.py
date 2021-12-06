@@ -1,13 +1,10 @@
 # %%
 import os
-import cv2
 import math
-from PIL import Image
 import matplotlib.pyplot as plt
 import matplotlib.offsetbox as osb
 from matplotlib import rcParams as rcp
 import numpy as np
-import lightly
 import tqdm
 import pandas as pd
 

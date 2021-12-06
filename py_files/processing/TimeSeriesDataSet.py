@@ -3,6 +3,7 @@ import numpy as np
 from tqdm import tqdm
 import torch
 from torch.utils.data import Dataset
+from tsaug import TimeWarp, Crop, Quantize, Drift, Reverse, AddNoise
 
 class OwnAugmentation():
 
@@ -16,7 +17,7 @@ class OwnAugmentation():
       return np.multiply(x, factor[:,:])
 
 
-from tsaug import TimeWarp, Crop, Quantize, Drift, Reverse, AddNoise
+
 my_augmenter = (
      #TimeWarp() * 5  # random time warping 5 times in parallel
      #+ Quantize(n_levels=[10, 20, 30])  # random quantize to 10-, 20-, or 30- level sets

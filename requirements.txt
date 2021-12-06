@@ -24,6 +24,10 @@ xarray
 descartes
 salem
 
+torchvision
+pytorch_lightning
+tsaug
+tsai
 tqdm==4.56.0
 lightly==1.2.0
 

@@ -1,7 +1,11 @@
 # %%
 # compare the crop type classification of RF and SimSiam
+import sys
+sys.path.append('./model')
+sys.path.append('..')
 
-from TimeSeriesDataSet import *
+from model import *
+from processing import *
 import math
 
 import torch.nn as nn
@@ -31,8 +35,11 @@ import pickle
 from sklearn.model_selection import KFold
 from sklearn.model_selection import cross_val_predict
 from sklearn.model_selection import cross_val_score
-# %%
 
+#tsai could be helpful
+from tsai.all import *
+computer_setup()
+# %%
 
 def printConfusionResults(confusion, logfile='log.xlsx'):
     # PA
@@ -52,7 +59,6 @@ def printConfusionResults(confusion, logfile='log.xlsx'):
         tmp['PA'].loc[idx] = round(((row[idx]) / row['Total'])*100, 2)
 
     # hier überprüfen ob alles stimmt
-
     print('Diag:', tmp.values.diagonal().sum()-tmp['Total'].tail(1)[0])
     print('Ref:', tmp['Total'].tail(1).values[0])
     oa = (tmp.values.diagonal().sum() -
@@ -68,25 +74,23 @@ def printConfusionResults(confusion, logfile='log.xlsx'):
     # tmp.to_excel("Daten/Neu/"+logfile+".xlsx")
     print(tmp)
 
+# %%
 
-# load training and test data for bavaria
+#load data for bavaria
 bavaria_train = pd.read_excel(
-    "../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx")
+    "../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx")
 bavaria_test = pd.read_excel(
-    "../data/cropdata/Bavaria/sentinel-2/Test_bavaria.xlsx")
-bavaria_test.drop(['Unnamed: 0'], axis=1, inplace=True)
-bavaria_train.drop(['Unnamed: 0'], axis=1, inplace=True)
+    "../../data/cropdata/Bavaria/sentinel-2/Test_bavaria.xlsx")
 
-# %%
-bavaria_train.tail()
-# %%
 bavaria_reordered = pd.read_excel(
-    '../data/cropdata/Bavaria/sentinel-2/data2016-2018.xlsx', index_col=0)
+    '../../data/cropdata/Bavaria/sentinel-2/data2016-2018.xlsx', index_col=0)
 bavaria_test_reordered = pd.read_excel(
-    '../data/cropdata/Bavaria/sentinel-2/TestData.xlsx', index_col=0)
+    '../../data/cropdata/Bavaria/sentinel-2/TestData.xlsx', index_col=0)
 
+train = utils.clean_bavarian_labels(bavaria_train)
+test = utils.clean_bavarian_labels(bavaria_test)
 # %%
-bavaria_test_reordered.head()
+test
 # %%
 ############################################################################
 # Random Forest
@@ -127,52 +131,103 @@ print('Accuracy of classifier Cross Validation: {:.2f}'
 confusion = pd.DataFrame()
 confusion['y_pred'] = y_pred
 confusion['y_test'] = y_test.values
-printConfusionResults(confusion)
+#printConfusionResults(confusion)
 # %%
+confusion
 
+# %%
 ############################################################################
 # SimSiam
 ############################################################################
 # Custom DataSet with augmentation
 # augmentation needs to be extended
 
-feature_list = bavaria_train.columns[bavaria_train.columns.str.contains('B')]
-dataset = TimeSeriesDataSet(bavaria_train, feature_list.tolist(), 'NC')
-print(dataset[100])
-augmentation, _, y = dataset[100]
+feature_list = train.columns[train.columns.str.contains('B')]
+ts_dataset = TimeSeriesAugmented(train, feature_list.tolist(), 'NC')
+ts_dataset_test = TimeSeriesAugmented(test, feature_list.tolist(), 'NC')
+
+dataloader_train = torch.utils.data.DataLoader(
+    ts_dataset, batch_size=3, shuffle=True,drop_last=False, num_workers=2)
+dataloader_test = torch.utils.data.DataLoader(
+    ts_dataset_test, batch_size=3, shuffle=True,drop_last=False, num_workers=2)
+
 # %%
 
-dataloader = torch.utils.data.DataLoader(
-    dataset, batch_size=1, shuffle=True, num_workers=2)
 # %%
-
-
-def plot_batch(augmentation, timeseries, labels):
+def plot_firstinbatch(aug_x1, aug_x2, timeseries, labels):
     fig, axs = plt.subplots(3)
     fig.suptitle('Augmentation')
 
     #x  = timeseries[:,bands_idxs]
-    axs[0].plot(timeseries.numpy().reshape(14, 13), "-")
-    axs[1].plot(augmentation[0].numpy().reshape(14, 13), "-")
-    axs[2].plot(augmentation[1].numpy().reshape(14, 13), "-")
+    axs[0].plot(timeseries[0].numpy().reshape(14, 13), "-")
+    axs[1].plot(aug_x1[0].numpy().reshape(14, 13), "-")
+    axs[2].plot(aug_x2[0].numpy().reshape(14, 13), "-")
 
     print("Crop type:", labels)
     plt.show()
 
-
-for i, data in enumerate(dataloader):
+for i, data in enumerate(dataloader_train):
     if (i > 0):
         break
-    aug, timeseries, labels = data
-    plot_batch(aug, timeseries, labels)
-# %%
-# init simsiam and training
-# https://docs.lightly.ai/tutorials/package/tutorial_simsiam_esa.html
-#
-#we start with tsai
-#A Transformer-based Framework for Multivariate Time Series Representation
+    (aug_x1, aug_x2), timeseries, labels = data
+    print (aug_x1.shape,labels.shape)
+    plot_firstinbatch(aug_x1, aug_x2, timeseries, labels)
 
-from tsai.all import *
-computer_setup()
+# %%
+
+
+# %%
+cifar10 = torchvision.datasets.CIFAR10("datasets/cifar10", download=True)
+dataset = lightly.data.LightlyDataset.from_torch_dataset(cifar10)
+# or create a dataset from a folder containing images or videos:
+# dataset = LightlyDataset("path/to/folder")
+
+collate_fn = lightly.data.SimCLRCollateFunction(input_size=32)
+
+dataloader = torch.utils.data.DataLoader(
+    dataset,
+    batch_size=256,
+    collate_fn=collate_fn,
+    shuffle=True,
+    drop_last=True,
+    num_workers=8,
+)
+
+# %%
+gpus = 1 if torch.cuda.is_available() else 0
+seed = 1
+# seed torch and numpy
+torch.manual_seed(0)
+np.random.seed(0)
+
+batch_size=3
+epochs = 5
+#input size (timesteps x channels)
+input_size = 14
+num_ftrs = 28
+proj_hidden_dim =7
+pred_hidden_dim = 10
+out_dim =7
+
+transformer = Attention_LM(num_classes = 7)
+# without pretraining
+backbone  = nn.Sequential(*list(transformer.children())[:-1])
+
+# scale the learning rate
+lr = 0.05 * batch_size / 256
+model = SimSiam(backbone, num_ftrs = num_ftrs, proj_hidden_dim =proj_hidden_dim, pred_hidden_dim = pred_hidden_dim, out_dim = out_dim,lr=lr)
+
+# %%
+backbone
+# %%
+model.projection_mlp = lightly.models.modules.heads.ProjectionHead([
+    (num_ftrs, proj_hidden_dim, nn.BatchNorm1d(proj_hidden_dim), nn.ReLU()),
+    (proj_hidden_dim, out_dim, nn.BatchNorm1d(out_dim), None)
+])
+# %%
+SimSiam
+# %%
+trainer = pl.Trainer(max_epochs=5, gpus=0, deterministic=True)
+trainer.fit(model=model, train_dataloaders=dataloader_train)
 
 
