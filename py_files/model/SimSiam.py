@@ -32,6 +32,7 @@ class SimSiam(pl.LightningModule):
         self.momentum = momentum
         self.lr = lr
         self.epochs = epochs
+        self.ce = lightly.loss.negative_cosine_similarity.NegativeCosineSimilarity()
 
         self.backbone = backbone
         self.projection_head = SimSiamProjectionHead(
@@ -40,17 +41,19 @@ class SimSiam(pl.LightningModule):
         self.prediction_head = SimSiamPredictionHead(
             out_dim, pred_hidden_dim, out_dim
         )
-        self.ce = lightly.loss.negative_cosine_similarity.NegativeCosineSimilarity()
+        
 
     def forward(self, x):
         # encoder
-        f = self.backbone(x)#.flatten(start_dim=1)
+        print('test')
+        f = self.backbone(x).flatten(start_dim=1)
         # embeddings
         z = self.projection_head(f)
         # predictions
         p = self.prediction_head(z)
         # stop gradient
         z = z.detach()
+        print('test2')
         return z, p
 
     def training_step(self, batch, batch_idx):

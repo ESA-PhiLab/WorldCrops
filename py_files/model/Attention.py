@@ -26,28 +26,32 @@ class Attention(nn.Module):
         """
 
         self.model_type = 'Transformer'
-        self.encoder_layers = nn.TransformerEncoderLayer(d_model, n_head, dim_feedforward=d_ffn, dropout = dropout, activation=activation, batch_first=True)
 
         self.inlinear = nn.Linear(input_dim, d_model)
         self.relu = nn.ReLU()
-        self.transformer_encoder = nn.TransformerEncoder(self.encoder_layers, nlayers, nn.LayerNorm(d_model))
+        encoder_layers = nn.TransformerEncoderLayer(d_model, n_head, dim_feedforward=d_ffn, dropout = dropout, activation=activation, batch_first=True)
+        self.transformer_encoder = nn.TransformerEncoder(encoder_layers, nlayers, nn.LayerNorm(d_model))
         self.outlinear = nn.Linear(d_model, num_classes)
 
     def forward(self,x):
         # N x T x D -> N x T x d_model / Batch First!
-        x = self.inlinear(x) 
+        x = self.inlinear(x)
+        #torch.Size([N, T, d_model]) 
         x = self.relu(x)
         x = self.transformer_encoder(x)
+        #torch.Size([N, T, d_model])
         x = x.max(1)[0]
         x = self.relu(x)
         x = self.outlinear(x)
+        #torch.Size([N,num_classes ])
         x = F.log_softmax(x, dim=-1)
+        #torch.Size([N, num_classes])
         return x
 
 
 class Attention_LM(pl.LightningModule):
 
-    def __init__(self, input_dim = 13, num_classes = 7, d_model = 64, n_head = 2, d_ffn = 128, nlayers = 2, dropout = 0.018, activation="relu"):
+    def __init__(self, input_dim = 13, num_classes = 7, d_model = 64, n_head = 2, d_ffn = 128, nlayers = 2, dropout = 0.018, activation="relu", lr = 0.0002):
         super().__init__()
         """
         Args:
@@ -61,16 +65,20 @@ class Attention_LM(pl.LightningModule):
             + : https://pytorch.org/docs/stable/generated/torch.nn.Transformer.html
         Input:
             batch size(N) x T x D
+        Output
+            batch size(N) x Targets
         """
         self.model_type = 'Transformer_LM'
-        self.lr = 0.0002
+        self.lr = lr
         self.ce = nn.CrossEntropyLoss()
-        self.encoder_layers = nn.TransformerEncoderLayer(d_model, n_head, dim_feedforward=d_ffn, dropout = dropout, activation=activation, batch_first=True)
 
+        encoder_layers = nn.TransformerEncoderLayer(d_model, n_head, dim_feedforward=d_ffn, dropout = dropout, activation=activation, batch_first=True)
         self.inlinear = nn.Linear(input_dim, d_model)
         self.relu = nn.ReLU()
-        self.transformer_encoder = nn.TransformerEncoder(self.encoder_layers, nlayers, nn.LayerNorm(d_model))
+        self.transformer_encoder = nn.TransformerEncoder(encoder_layers, nlayers, nn.LayerNorm(d_model))
         self.outlinear = nn.Linear(d_model, num_classes)
+
+        
 
 
     def forward(self,x):

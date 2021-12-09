@@ -22,14 +22,16 @@ sys.path.append('..')
 import model
 from model import *
 from processing import *
-from tsai.all import *
-# %%
+#from tsai.all import *
 
-pwd
+import torch
+import breizhcrops as bc
 # %%
-
+model = bc.models.TransformerModel(num_classes=7)
+model
 # %%
-
+own = Attention_LM(num_classes = 7)
+own
 
 # %%
 # Prepare datasets
@@ -80,11 +82,6 @@ check_data(X, y, splits)
 dls100 = get_ts_dls(X, y, splits=splits, tfms=tfms, batch_tfms=batch_tfms)
 
 # %%
-
-
-
-
-# %%
 # parameters
 input_dim = 32 * 32 * 3
 num_classes = 10
@@ -105,9 +102,7 @@ pl.seed_everything(42)
 
 # %%
 # train breizhcrops
-import torch
-import tqdm
-import breizhcrops as bc
+
 model = bc.models.TransformerModel(num_classes=7)
 model.train()
 dataset = bc.BreizhCrops("belle-ile")
@@ -129,7 +124,7 @@ for epoch in range(5):
       pbar.set_description(f"idx {idx}: loss {loss:.2f}")
 
 # %%
-test.tail()
+model
 # %%
 #test model
 feature_list = test.columns[test.columns.str.contains('B')]
@@ -194,6 +189,8 @@ model
 #train own again
 import breizhcrops as bc
 dataset = bc.BreizhCrops("belle-ile")
+
+# %%
 feature_list = train.columns[train.columns.str.contains('B')]
 ts_data = TimeSeriesDataSet(train, feature_list.tolist(), 'NC')
 dataloader = DataLoader(ts_data,batch_size=3,shuffle=True,drop_last=False,num_workers=2)
@@ -206,7 +203,8 @@ ts_data = TimeSeriesDataSet(train, feature_list.tolist(), 'NC')
 
 trainer = pl.Trainer(auto_scale_batch_size='power', gpus=0, deterministic=True, max_epochs=5)
 trainer.fit(model1, dataloader)
-
+# %%
+model1
 # %%
 import tqdm
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

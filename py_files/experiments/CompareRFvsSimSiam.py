@@ -37,8 +37,8 @@ from sklearn.model_selection import cross_val_predict
 from sklearn.model_selection import cross_val_score
 
 #tsai could be helpful
-from tsai.all import *
-computer_setup()
+#from tsai.all import *
+#computer_setup()
 # %%
 
 def printConfusionResults(confusion, logfile='log.xlsx'):
@@ -177,79 +177,162 @@ for i, data in enumerate(dataloader_train):
 
 
 # %%
-cifar10 = torchvision.datasets.CIFAR10("datasets/cifar10", download=True)
-dataset = lightly.data.LightlyDataset.from_torch_dataset(cifar10)
-# or create a dataset from a folder containing images or videos:
-# dataset = LightlyDataset("path/to/folder")
-
-collate_fn = lightly.data.SimCLRCollateFunction(input_size=32)
-
-dataloader = torch.utils.data.DataLoader(
-    dataset,
-    batch_size=256,
-    collate_fn=collate_fn,
-    shuffle=True,
-    drop_last=True,
-    num_workers=8,
-)
-
-# %%
 gpus = 1 if torch.cuda.is_available() else 0
 seed = 1
 # seed torch and numpy
 torch.manual_seed(0)
 np.random.seed(0)
 
-batch_size=3
-epochs = 5
+batch_size=16
+epochs = 20
 #input size (timesteps x channels)
 input_size = 14
-num_ftrs = 28
-proj_hidden_dim =7
-pred_hidden_dim = 10
-out_dim =7
+num_ftrs = 64
+proj_hidden_dim =14
+pred_hidden_dim =14
+out_dim =14
 
-transformer = Attention_LM(num_classes = 7)
+transformer = Attention(num_classes = 7)
 # without pretraining
 backbone  = nn.Sequential(*list(transformer.children())[:-1])
 
 # scale the learning rate
 lr = 0.05 * batch_size / 256
-model = SimSiam(backbone, num_ftrs = num_ftrs, proj_hidden_dim =proj_hidden_dim, pred_hidden_dim = pred_hidden_dim, out_dim = out_dim,lr=lr)
+# create the SimSiam model using the backbone from above
+class SimSiam(nn.Module):
+    """Implementation of SimSiam[0] network
+    Recommended loss: :py:class:`lightly.loss.sym_neg_cos_sim_loss.SymNegCosineSimilarityLoss`
+    [0] SimSiam, 2020, https://arxiv.org/abs/2011.10566
+    Attributes:
+        backbone:
+            Backbone model to extract features from images.
+        num_ftrs:
+            Dimension of the embedding (before the projection head).
+        proj_hidden_dim:
+            Dimension of the hidden layer of the projection head. This should
+            be the same size as `num_ftrs`.
+        pred_hidden_dim:
+            Dimension of the hidden layer of the predicion head. This should
+            be `num_ftrs` / 4.
+        out_dim:
+            Dimension of the output (after the projection head).
+    """
 
-# %%
-backbone
+    def __init__(self,
+                 backbone: nn.Module,
+                 num_ftrs: int = 2048,
+                 proj_hidden_dim: int = 2048,
+                 pred_hidden_dim: int = 512,
+                 out_dim: int = 2048):
+
+        super(SimSiam, self).__init__()
+
+        self.backbone = backbone
+        self.num_ftrs = num_ftrs
+        self.proj_hidden_dim = proj_hidden_dim
+        self.pred_hidden_dim = pred_hidden_dim
+        self.out_dim = out_dim
+
+        self.projection_mlp = SimSiamProjectionHead(
+            num_ftrs,
+            proj_hidden_dim,
+            out_dim,
+        )
+
+        self.prediction_mlp = SimSiamPredictionHead(
+            out_dim,
+            pred_hidden_dim,
+            out_dim,
+        )
+        
+    def forward(self, 
+                x0: torch.Tensor, 
+                x1: torch.Tensor = None,
+                return_features: bool = False):
+        """Forward pass through SimSiam.
+        Extracts features with the backbone and applies the projection
+        head and prediction head to the output space. If both x0 and x1 are not
+        None, both will be passed through the backbone, projection, and
+        prediction head. If x1 is None, only x0 will be forwarded.
+        Args:
+            x0:
+                Tensor of shape bsz x channels x W x H.
+            x1:
+                Tensor of shape bsz x channels x W x H.
+            return_features:
+                Whether or not to return the intermediate features backbone(x).
+        Returns:
+            The output prediction and projection of x0 and (if x1 is not None)
+            the output prediction and projection of x1. If return_features is
+            True, the output for each x is a tuple (out, f) where f are the
+            features before the projection head.
+            
+        Examples:
+            >>> # single input, single output
+            >>> out = model(x) 
+            >>> 
+            >>> # single input with return_features=True
+            >>> out, f = model(x, return_features=True)
+            >>>
+            >>> # two inputs, two outputs
+            >>> out0, out1 = model(x0, x1)
+            >>>
+            >>> # two inputs, two outputs with return_features=True
+            >>> (out0, f0), (out1, f1) = model(x0, x1, return_features=True)
+        """
+        f0 = self.backbone(x0)#.flatten(start_dim=1)
+        #print(f0.shape)
+        z0 = self.projection_mlp(f0)
+        p0 = self.prediction_mlp(z0)
+
+        out0 = (z0, p0)
+
+        # append features if requested
+        if return_features:
+            out0 = (out0, f0)
+
+        if x1 is None:
+            return out0
+        
+        f1 = self.backbone(x1).flatten(start_dim=1)
+        
+        z1 = self.projection_mlp(f1)
+        p1 = self.prediction_mlp(z1)
+
+        out1 = (z1, p1)
+
+        # append features if requested
+        if return_features:
+            out1 = (out1, f1)
+
+        return out0, out1
+
+model = SimSiam(
+    backbone,
+    num_ftrs=num_ftrs,
+    proj_hidden_dim=proj_hidden_dim,
+    pred_hidden_dim=pred_hidden_dim,
+    out_dim=out_dim,
+)
+
+
 # %%
 model.projection_mlp = lightly.models.modules.heads.ProjectionHead([
     (num_ftrs, proj_hidden_dim, nn.BatchNorm1d(proj_hidden_dim), nn.ReLU()),
     (proj_hidden_dim, out_dim, nn.BatchNorm1d(out_dim), None)
 ])
-# %%
-SimSiam
-# %%
-trainer = pl.Trainer(max_epochs=5, gpus=0, deterministic=True)
-trainer.fit(model=model, train_dataloaders=dataloader_train)
+#model.prediction_mlp = lightly.models.modules.heads.SimSiamPredictionHead(14, 14, 14)
 
 # %%
-model1 = Attention_LM(num_classes = 7)
-model1.train()
-feature_list = train.columns[train.columns.str.contains('B')]
-ts_data = TimeSeriesDataSet(train, feature_list.tolist(), 'NC')
-dataloader = DataLoader(ts_data,batch_size=3,shuffle=True,drop_last=False,num_workers=2)
+model
 
-trainer = pl.Trainer(auto_scale_batch_size='power', gpus=0, deterministic=True, max_epochs=5)
-trainer.fit(model1, dataloader)
-
-# %%
-model1
 # %%
 #train like in description
-model1 = Attention_LM(num_classes = 7)
-model1.train()
+
 feature_list = train.columns[train.columns.str.contains('B')]
 ts_data = TimeSeriesAugmented(train, feature_list.tolist(), 'NC')
 dataloader2 = DataLoader(ts_data,batch_size=3,shuffle=True,drop_last=False,num_workers=2)
-criterion = lightly.loss.NTXentLoss()
+criterion = lightly.loss.NegativeCosineSimilarity()
 lr = 0.05 * batch_size / 256
 optimizer = torch.optim.SGD(
     model.parameters(),
@@ -275,21 +358,21 @@ for e in range(epochs):
 
         #x0 = aug[0].to(device)
         #x1 = aug[1].to(device)
-        print(x1.shape)
+        #print(x1.shape)
 
         #x0 = torch.unsqueeze(X, 1)
         #x1 = torch.unsqueeze(X, 1)
         x0 = x0.to(device)
         x1 = x1.to(device)
 
-        print(x0.shape)
+        #print(x0.shape)
         # run the model on both transforms of the images
         # the output of the simsiam model is a y containing the predictions
         # and projections for each input x
         z0, p0 = model(x0)
-        
         z1, p1 = model(x1)
 
+        #print(z1.shape,p1.shape)
         loss = 0.5 * (criterion(z0, p1) + criterion(z1, p0))
         loss.backward()
 
@@ -320,4 +403,6 @@ for e in range(epochs):
 dataiter = iter(dataloader2)
 (x1,x2),x, y = next(dataiter)
 print(x1.shape)
+# %%
+
 # %%
