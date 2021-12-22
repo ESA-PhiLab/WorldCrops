@@ -12,6 +12,11 @@ import os
 import cv2
 
 #!pip install breizhcrops
+import sklearn.datasets
+import pandas as pd
+import numpy as np
+import umap
+import umap.plot
 
 import math
 import torch
@@ -153,7 +158,7 @@ get_energy(Z, Y, hopfield.scaling)
 num_workers = 0
 batch_size = 16
 seed = 1
-epochs = 3
+epochs = 50
 input_size = 256
 
 # dimension of the embeddings
@@ -238,27 +243,12 @@ dataloader_test = torch.utils.data.DataLoader(
     num_workers=num_workers
 )
 # %%
-
+len(dataset_test)
+# %%
 from lightly.models.modules import SimSiamProjectionHead
 from lightly.models.modules import SimSiamPredictionHead
 class SimSiam(nn.Module):
-    """Implementation of SimSiam[0] network
-    Recommended loss: :py:class:`lightly.loss.sym_neg_cos_sim_loss.SymNegCosineSimilarityLoss`
-    [0] SimSiam, 2020, https://arxiv.org/abs/2011.10566
-    Attributes:
-        backbone:
-            Backbone model to extract features from images.
-        num_ftrs:
-            Dimension of the embedding (before the projection head).
-        proj_hidden_dim:
-            Dimension of the hidden layer of the projection head. This should
-            be the same size as `num_ftrs`.
-        pred_hidden_dim:
-            Dimension of the hidden layer of the predicion head. This should
-            be `num_ftrs` / 4.
-        out_dim:
-            Dimension of the output (after the projection head).
-    """
+
 
     def __init__(self,
                  backbone: nn.Module,
@@ -291,41 +281,12 @@ class SimSiam(nn.Module):
                 x0: torch.Tensor, 
                 x1: torch.Tensor = None,
                 return_features: bool = False):
-        """Forward pass through SimSiam.
-        Extracts features with the backbone and applies the projection
-        head and prediction head to the output space. If both x0 and x1 are not
-        None, both will be passed through the backbone, projection, and
-        prediction head. If x1 is None, only x0 will be forwarded.
-        Args:
-            x0:
-                Tensor of shape bsz x channels x W x H.
-            x1:
-                Tensor of shape bsz x channels x W x H.
-            return_features:
-                Whether or not to return the intermediate features backbone(x).
-        Returns:
-            The output prediction and projection of x0 and (if x1 is not None)
-            the output prediction and projection of x1. If return_features is
-            True, the output for each x is a tuple (out, f) where f are the
-            features before the projection head.
-            
-        Examples:
-            >>> # single input, single output
-            >>> out = model(x) 
-            >>> 
-            >>> # single input with return_features=True
-            >>> out, f = model(x, return_features=True)
-            >>>
-            >>> # two inputs, two outputs
-            >>> out0, out1 = model(x0, x1)
-            >>>
-            >>> # two inputs, two outputs with return_features=True
-            >>> (out0, f0), (out1, f1) = model(x0, x1, return_features=True)
-        """
+
+        print("test1",x0.shape)
         f0 = self.backbone(x0).flatten(start_dim=1)
         #f0 torch.Size([16, 512])
         #print("f0",f0.shape)
-        #print("test",self.backbone(x0).shape)
+        print("test2",self.backbone(x0).shape)
         #torch.Size([16, 512, 1, 1])
         z0 = self.projection_mlp(f0)
         #z0 torch.Size([16, 512])
@@ -371,7 +332,10 @@ model = SimSiam(
 )
 
 # %%
-model
+dataiter = iter(dataloader_train_simsiam)
+(x0, x1), test1, test2 = next(dataiter)
+x1.shape
+
 # %%
 # replace the 3-layer projection head by a 2-layer projection head
 # (similar to how it's done for SimSiam on Cifar10)
@@ -392,10 +356,7 @@ optimizer = torch.optim.SGD(
     momentum=0.9,
     weight_decay=5e-4
 )
-# %%
-print('Length of data set: ', len(dataset_train_simsiam), '\n')
-# %%
-print('Entire data set: ', dataloader_train_simsiam.shape, '\n')
+
 
 # %%
 #visualize one augmentation
@@ -413,9 +374,6 @@ def show(img):
     plt.imshow(np.transpose(npimg, (1, 2, 0)), interpolation='nearest')
 
 show(x1[0])
-
-# %%
-x1[0].shape
 
 
 # %%
@@ -483,7 +441,7 @@ with torch.no_grad():
         # move the images to the gpu
         x = x.to(device)
         # embed the images with the pre-trained backbone
-        y = model.backbone(x)
+        y = model.backbone(x).flatten(start_dim=1)
         y = y.squeeze()
         # store the embeddings and filenames in lists
         embeddings.append(y)
@@ -494,7 +452,7 @@ embeddings = torch.cat(embeddings, dim=0)
 embeddings = embeddings.cpu().numpy()
 
 # %%
-list(model.children())
+embeddings.shape
 
 # %%
 # for plotting
@@ -522,9 +480,13 @@ M = np.max(embeddings_2d, axis=0)
 m = np.min(embeddings_2d, axis=0)
 embeddings_2d = (embeddings_2d - m) / (M - m)
 
-
 # %%
-def get_scatter_plot_with_thumbnails():
+mapper = umap.UMAP().fit(embeddings_2d)
+umap.plot.points(mapper, color_key_cmap='Paired', background='black')
+# %%
+shown_images_idx
+# %%
+def get_embeddings_plot():
     """Creates a scatter plot with image overlays.
     """
     # initialize empty figure and add subplot
@@ -544,27 +506,16 @@ def get_scatter_plot_with_thumbnails():
         shown_images = np.r_[shown_images, [embeddings_2d[i]]]
         shown_images_idx.append(i)
 
-    # plot image overlays
     for idx in shown_images_idx:
-        thumbnail_size = int(rcp['figure.figsize'][0] * 2.)
-        path = os.path.join(path_to_data, filenames[idx])
-        img = Image.open(path)
-        img = functional.resize(img, thumbnail_size)
-        img = np.array(img)
-        img_box = osb.AnnotationBbox(
-            osb.OffsetImage(img, cmap=plt.cm.gray_r),
-            embeddings_2d[idx],
-            pad=0.2,
-        )
-        ax.add_artist(img_box)
+        circle = plt.Circle((embeddings_2d[idx][0], embeddings_2d[idx][1]), 0.02, color='r')
+        ax.add_artist(circle)
 
     # set aspect ratio
     ratio = 1. / ax.get_data_ratio()
     ax.set_aspect(ratio, adjustable='box')
 
-
 # get a scatter plot with thumbnail overlays
-get_scatter_plot_with_thumbnails()
+get_embeddings_plot()
 # %%
 example_images = ['1500.png','1501.png','1502.png','1503.png']
 
@@ -600,6 +551,7 @@ def plot_nearest_neighbors_3x3(example_image: str, i: int):
     fig.suptitle(f"Nearest Neighbor Plot {i + 1}")
     #
     example_idx = filenames.index(example_image)
+    print( example_idx)
     # get distances to the cluster center
     distances = embeddings - embeddings[example_idx]
     distances = np.power(distances, 2).sum(-1).squeeze()
@@ -659,44 +611,6 @@ simsiam_backbone
 #(2): ReLU()
 #(3): Linear(in_features=128, out_features=512, bias=True)
 
-import pytorch_lightning as pl
-
-class Classifier(pl.LightningModule):
-    def __init__(self, num_classes):
-        super().__init__()
-        # load our SSL pretrained model
-        _model = torch.load('/workspace/WorldCrops/py_files/model/simpsons_model')
-        #get the trained backbone
-        self.backbone = list(_model.children())[0]
-        #Dimension of the embedding (before the projection head).
-        input_dim = _model.num_ftrs
-
-        # use the pretrained model to classify several simpsons
-        num_target_classes = num_classes
-        self.classifier = nn.Linear(input_dim, num_target_classes)
-
-
-    def forward(self, x):
-        self.backbone.eval()
-        with torch.no_grad():
-            embeddings = self.feature_extractor(x).flatten(1)
-        x = self.classifier(rembeddings)
-        return self.layers(x)
-
-    def training_step(self, batch, batch_idx):
-        x, y = batch
-        x = x.view(x.size(0), -1)
-        y_hat = self.layers(x)
-        loss = self.ce(y_hat, y)
-        self.log('train_loss', loss)
-        return loss
-
-    def validation_step(self, batch, batch_idx):
-        return
-
-    def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)
-        return optimizer
 # %%
 test = Classifier(6)
 test

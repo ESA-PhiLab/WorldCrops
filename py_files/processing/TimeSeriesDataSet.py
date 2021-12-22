@@ -4,6 +4,8 @@ from tqdm import tqdm
 import torch
 from torch.utils.data import Dataset
 from tsaug import TimeWarp, Crop, Quantize, Drift, Reverse, AddNoise
+import pandas as pd
+import random
 
 class OwnAugmentation():
 
@@ -71,6 +73,60 @@ class TimeSeriesAugmented(Dataset):
         y = y[1]
         return torch.tensor(y, dtype=torch.long)
 
+class TimeSeriesPhysical(Dataset):
+    '''
+    :param data: dataset of type pandas.DataFrame
+    :param target_col: targeted column name
+    :param feature_list: list with target features
+    '''
+
+    def __init__(self, data, feature_list, target_col):
+        self.xy = data
+        self.target_col = target_col
+        self.feature_list = feature_list
+
+    def __len__(self):
+        return len(self.xy.id.unique())
+
+    def get_other_years(self,currentyear, yearlist):
+        import random
+        yearlist.remove(currentyear)
+        output = random.sample(yearlist, len(yearlist))
+        return output[0],output[1]
+
+    def __getitem__(self, field_idx):
+
+        x = self.xy[self.xy.id == field_idx][self.feature_list].values
+        y = self.xy[self.xy.id == field_idx][self.target_col].values
+
+        _id1 = self.xy[self.xy.id == field_idx]['id_x1'].values[0]
+        _id2 = self.xy[self.xy.id == field_idx]['id_x2'].values[0]
+        x1 = self.xy[self.xy.id == int(_id1)][self.feature_list].values
+        x2 = self.xy[self.xy.id == int(_id2)][self.feature_list].values
+
+        torchx = self.x2torch(x)
+        torchy = self.y2torch(y)
+
+        #augmentation based on different years
+        aug_x1 = self.x2torch(x1)
+        aug_x2 = self.x2torch(x2)
+
+        return (aug_x1, aug_x2), torchx, torchy
+            
+        
+    def x2torch(self, x):
+        '''
+        return torch for x
+        '''
+        #nb_obs, nb_features = self.x.shape
+        return torch.from_numpy(x).type(torch.FloatTensor)
+
+    def y2torch(self, y):
+        '''
+        return torch for y
+        '''
+        y = y[1]
+        return torch.tensor(y, dtype=torch.long)
 
 class TimeSeriesDataSet(Dataset):
     '''

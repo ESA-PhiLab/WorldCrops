@@ -93,14 +93,14 @@ class Attention_LM(pl.LightningModule):
         return x
 
     def training_step(self, batch, batch_idx):
-        x, y = batch
+        (x1,x2), x, y = batch
         y_pred = self.forward(x)
         loss = self.ce(y_pred, y)
         self.log('train_loss', loss)
         return loss
 
     def validation_step(self, val_batch, batch_idx):
-        x, y = val_batch
+        (x1,x2), x, y = val_batch
         y_pred = self.forward(x)
         loss = self.ce(y_pred, y)
         self.log('val_loss', loss)
