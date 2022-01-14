@@ -42,43 +42,20 @@ import numpy as np
 import umap
 import umap.plot
 
+from torch.utils.data.sampler import SubsetRandomSampler
+
 #tsai could be helpful
 #from tsai.all import *
 #computer_setup()
-# %%
 
-def printConfusionResults(confusion, logfile='log.xlsx'):
-    # PA
-    tmp = pd.crosstab(
-        confusion["y_test"], confusion["y_pred"], margins=True, margins_name='Total').T
-    tmp['UA'] = 0
-    for idx, row in tmp.iterrows():
-        # print(idx)
-        tmp['UA'].loc[idx] = round(((row[idx]) / row['Total']*100), 2)
-
-    # UA
-    tmp2 = pd.crosstab(
-        confusion["y_test"], confusion["y_pred"], margins=True, margins_name='Total')
-    tmp['PA'] = 0
-    for idx, row in tmp2.iterrows():
-        # print(row[idx],row.sum())
-        tmp['PA'].loc[idx] = round(((row[idx]) / row['Total'])*100, 2)
-
-    # hier überprüfen ob alles stimmt
-    print('Diag:', tmp.values.diagonal().sum()-tmp['Total'].tail(1)[0])
-    print('Ref:', tmp['Total'].tail(1).values[0])
-    oa = (tmp.values.diagonal().sum() -
-          tmp['Total'].tail(1)[0]) / tmp['Total'].tail(1)[0]
-    print('OverallAccurcy:', round(oa, 2))
-
-    print('Kappa:', round(sklearn.metrics.cohen_kappa_score(
-        confusion["y_pred"], confusion["y_test"], weights='quadratic'), 2))
-    print('#########')
-    print("Ac:", round(sklearn.metrics.accuracy_score(
-        confusion["y_pred"], confusion["y_test"]), 2))
-
-    # tmp.to_excel("Daten/Neu/"+logfile+".xlsx")
-    print(tmp)
+#some definitions for Transformers
+batch_size = 3
+test_size = 0.25
+SEED = 42
+num_workers=2
+shuffle_dataset =True
+_epochs = 5
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # %%
 #load data for bavaria
@@ -99,65 +76,149 @@ bavaria_test_reordered = pd.read_excel(
 #bavaria_train.to_excel (r'test.xlsx', index = False, header=True)
 train = utils.clean_bavarian_labels(bavaria_train)
 test = utils.clean_bavarian_labels(bavaria_test)
+#delete class 6 which is the class Other with various unidentified crops
+train = train[train.NC != 6]
+test = test[test.NC != 6]
 
 train_RF = utils.clean_bavarian_labels(bavaria_reordered)
 test_RF = utils.clean_bavarian_labels(bavaria_test_reordered)
+#delete class 6
+train_RF = train_RF[train_RF.NC !=6]
+test_RF = test_RF[test_RF.NC != 6]
 
-#delete class 0
-train = train[train.NC != 0]
-test = test[test.NC != 0]
+train = utils.rewrite_id_CustomDataSet(train)
+test = utils.rewrite_id_CustomDataSet(test)
 
-train_RF = train_RF[train_RF.NC != 0]
-test_RF = test_RF[test_RF.NC != 0]
-
-#rewrite the 'id' as we deleted one class
-#only for bavaria_test and bavaria_train
-newid = 0
-groups = train.groupby('id')
-for id, group in groups:
-    train.loc[train.id == id, 'id'] = newid
-    newid +=1
-
-test = test[test.NC != 0]
-#rewrite the 'id' as we deleted one class
-newid = 0
-groups = test.groupby('id')
-for id, group in groups:
-    test.loc[test.id == id, 'id'] = newid
-    newid +=1
 
 # %%
-train.head()
-# %%
+train.id.unique()
 
 # %%
-_model = Attention_LM()
-_model
+
+#split data to 1617 and 2018 
+test_2018 = train[train.Year == 2018].copy()
+train_1617 = train[train.Year != 2018]
+
+train_1617 = utils.rewrite_id_CustomDataSet(train_1617)
+test_2018 = utils.rewrite_id_CustomDataSet(test_2018)
+
+feature_list = train_1617.columns[train_1617.columns.str.contains('B')]
+ts_data_train = TimeSeriesDataSet(train_1617, feature_list.tolist(), 'NC')
+ts_data_test = TimeSeriesDataSet(test_2018, feature_list.tolist(), 'NC')
+
+dataloader1617_train = torch.utils.data.DataLoader(ts_data_train, batch_size=batch_size, shuffle=True,drop_last=True,num_workers=num_workers)
+dataloader18_validate = torch.utils.data.DataLoader(ts_data_test, batch_size=batch_size, shuffle=True,drop_last=True,num_workers=num_workers)
+dataloader18_test = torch.utils.data.DataLoader(ts_data_test, batch_size=batch_size, shuffle=True,drop_last=True,num_workers=num_workers)
+
+# use the full data set and make train test split
+from sklearn.model_selection import GroupShuffleSplit
+splitter = GroupShuffleSplit(test_size=.25, n_splits=2, random_state = 0)
+split = splitter.split(train, groups=train['id'])
+train_inds, test_inds = next(split)
+train_all = train.iloc[train_inds]
+test_all = train.iloc[test_inds]
+
+train_all = utils.rewrite_id_CustomDataSet(train_all)
+test_all = utils.rewrite_id_CustomDataSet(test_all)
+
+ts_train_all = TimeSeriesDataSet(train_all, feature_list.tolist(), 'NC')
+ts_test_all = TimeSeriesDataSet(test_all, feature_list.tolist(), 'NC')
+
+dataloader_train_all = DataLoader(ts_train_all,batch_size=batch_size, shuffle=True,drop_last=True,num_workers=num_workers)
+dataloader_test_all = DataLoader(ts_test_all,batch_size=batch_size, shuffle=True,drop_last=True,num_workers=num_workers)
+
+# one percent sample data for 2018
+_2018 = test_2018.copy()
+samples = pd.DataFrame()
+for i in range(0,6):
+    id = _2018[(_2018.NC == i)].sample(1).id
+    sample = _2018[(_2018.id == id.values[0])]
+    samples = pd.concat([samples,sample],axis=0)
+
+percent1 = pd.concat([train_1617,samples],axis = 0)
+
+percent1 = utils.rewrite_id_CustomDataSet(percent1)
+
+ts_data_train = TimeSeriesDataSet(percent1, feature_list.tolist(), 'NC')
+dataloader18_1percent_train = torch.utils.data.DataLoader(ts_data_train, batch_size=batch_size, shuffle=True,drop_last=True,num_workers=num_workers)
+
 # %%
+len(train.id.unique())
 
-
-
- # %%
 # %%
 ############################################################################
 # Random Forest & Transformer
 ############################################################################
-# Custom DataSet with augmentation
-# augmentation needs to be extended
 
-feature_list = train.columns[train.columns.str.contains('B')]
-ts_dataset = TimeSeriesPhysical(train, feature_list.tolist(), 'NC')
-ts_dataset_test = TimeSeriesDataSet(test, feature_list.tolist(), 'NC')
+# First experiment train test split with all data
+model1 = Attention_LM(num_classes = 6)
+model1.train()
 
-batch_size=32
-dataloader_train = torch.utils.data.DataLoader(
-    ts_dataset, batch_size=batch_size, shuffle=True,drop_last=False, num_workers=2)
-dataloader_test = torch.utils.data.DataLoader(
-    ts_dataset_test, batch_size=batch_size, shuffle=True,drop_last=True, num_workers=2)
+trainer = pl.Trainer( gpus=1 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs=_epochs)
+trainer.fit(model1, dataloader18_1percent_train)
 
-# %% 
+"""
+# Second experiment train 2016 and 17 - test on 2018
+model2 = Attention_LM(num_classes = 6)
+model2.train()
 
+trainer = pl.Trainer( gpus=1 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs=_epochs)
+trainer.fit(model2, dataloader1617_train)
 
+# Third experiment train 2016 and 17 + 1 percent from 2018 - test on 2018
+model3 = Attention_LM(num_classes = 6)
+model3.train()
+
+trainer = pl.Trainer( gpus=1 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs=_epochs)
+trainer.fit(model3, dataloader18_1percent_train)"""
+
+# %%
+#trainer.test(_model,test_dl)
+# %%
+
+def test_epoch(model, criterion, test_dl, device):
+    model.eval()
+    with torch.no_grad():
+        losses = list()
+        y_true_list = list()
+        y_pred_list = list()
+        y_score_list = list()
+
+        with tqdm.tqdm(enumerate(test_dl), total=len(test_dl), leave=True) as iterator:
+            for idx, batch in iterator:
+                x, y_true = batch
+                logprobabilities = model.forward(x.to(device))
+                loss = criterion(logprobabilities, y_true.to(device))
+                iterator.set_description(f"test loss={loss:.2f}")
+                losses.append(loss)
+                y_true_list.append(y_true)
+                y_pred_list.append(logprobabilities.argmax(-1))
+                y_score_list.append(logprobabilities.exp())
+
+        return torch.stack(losses), torch.cat(y_true_list), torch.cat(y_pred_list), torch.cat(y_score_list)
+
+ # %%
+losses, y_true, y_pred, y_score = test_epoch( _model, torch.nn.CrossEntropyLoss(), dataloader_test_all, device )
+from sklearn.metrics import classification_report
+print(classification_report(y_true.cpu(), y_pred.cpu()))
+
+# %%
+#https://towardsdatascience.com/pytorch-lightning-making-your-training-phase-cleaner-and-easier-845c4629445b
+
+#find learning rate
+lr_finder = trainer.tuner.lr_find(model, 
+                        min_lr=0.0005, 
+                        max_lr=0.005,
+                        mode='linear')
+
+# Plots the optimal learning rate
+fig = lr_finder.plot(suggest=True)
+fig.show()
+# %%
+# find batch size
+trainer.tune(model)
+# %%
+'''
 # %%      
 ############################################################################
 # Random Forest all data
@@ -237,7 +298,6 @@ print('Accuracy of classifier on training set: {:.2f}'
 print('Accuracy of classifier on test set: {:.2f}'
       .format(clf_18.score(X_test, y_test)))
 
-      .format(score.mean()))
 confusion = pd.DataFrame()
 confusion['y_pred'] = y_pred
 confusion['y_test'] = y_test.values
@@ -261,11 +321,25 @@ _cv = KFold(n_splits=5, shuffle=True, random_state=_J)
 band2 = "_B"
 #_wO = bavaria_reordered[bavaria_reordered.NC != 1]
 
-X = train_RF[train_RF.columns[train_RF.columns.str.contains(band2, na=False)]]
-y = train_RF['NC']
+#sample some examples from 2018
+_2018 = train_RF[(train_RF.Year == 2018)].copy()
+samples = pd.DataFrame()
+for i in range(1,7):
+    sample = _2018[(_2018.NC == i)].sample(1)
+    samples = pd.concat([samples,sample],axis=0)
 
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=_test_size, random_state=_J)
+subset = train_RF[train_RF.Year == 2018].sample(30).copy()
+#######
+
+train_1617 = train_RF[train_RF.Year != 2018].copy()
+train  = pd.concat([train_1617,samples],axis = 0)
+X_train = train[train.columns[train.columns.str.contains(band2, na=False)]]
+y_train = train['NC']
+
+test_RF = train_RF[train_RF.Year == 2018].copy()
+X_test = test_RF[test_RF.columns[test_RF.columns.str.contains(band2, na=False)]]
+y_test = test_RF['NC']
+
 
 clf_18 = RandomForestClassifier(
     n_estimators=_n_estimators, max_features=_max_features, random_state=_J)
@@ -279,12 +353,21 @@ print('Accuracy of classifier on training set: {:.2f}'
 print('Accuracy of classifier on test set: {:.2f}'
       .format(clf_18.score(X_test, y_test)))
 
-      .format(score.mean()))
 confusion = pd.DataFrame()
 confusion['y_pred'] = y_pred
 confusion['y_test'] = y_test.values
-#printConfusionResults(confusion)# %%
+# %%
+
 
 # %%
-train_RF[train_RF.Year == 2018]
+
+#X = train_RF[train_RF.columns[train_RF.columns.str.contains(band2, na=False)]]
+#y = train_RF['NC']
+
 # %%
+samples
+
+# %%
+train_1617.describe()
+# %%
+'''

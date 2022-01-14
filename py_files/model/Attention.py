@@ -71,6 +71,7 @@ class Attention_LM(pl.LightningModule):
         self.model_type = 'Transformer_LM'
         self.lr = lr
         self.ce = nn.CrossEntropyLoss()
+        self.save_hyperparameters()
 
         encoder_layers = nn.TransformerEncoderLayer(d_model, n_head, dim_feedforward=d_ffn, dropout = dropout, activation=activation, batch_first=True)
         self.inlinear = nn.Linear(input_dim, d_model)
@@ -79,8 +80,6 @@ class Attention_LM(pl.LightningModule):
         self.outlinear = nn.Linear(d_model, num_classes)
 
         
-
-
     def forward(self,x):
         # N x T x D -> N x T x d_model / Batch First!
         x = self.inlinear(x) 
@@ -93,19 +92,31 @@ class Attention_LM(pl.LightningModule):
         return x
 
     def training_step(self, batch, batch_idx):
-        (x1,x2), x, y = batch
+        x, y = batch
         y_pred = self.forward(x)
         loss = self.ce(y_pred, y)
-        self.log('train_loss', loss)
+        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return loss
 
+    def training_epoch_end(self, outputs):
+        pass
+
     def validation_step(self, val_batch, batch_idx):
-        (x1,x2), x, y = val_batch
+        x, y = val_batch
         y_pred = self.forward(x)
         loss = self.ce(y_pred, y)
         self.log('val_loss', loss)
         return loss
 
+    def validation_epoch_end(self, outputs):
+        pass
+
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
         return optimizer
+
+    def test_step(self, test_batch, batch_idx):
+        x, y = test_batch
+        y_pred = self.forward(x)
+        loss = self.ce(y_pred, y)
+        self.log("test_loss", loss)

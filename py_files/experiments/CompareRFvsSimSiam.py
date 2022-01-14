@@ -467,46 +467,5 @@ dataiter = iter(dataloader_test)
 x, y = next(dataiter)
 plot_one_example(x, y)
 
-# %%      
-############################################################################
-# Random Forest
-############################################################################
 
-# hier parameter festlegen
-# RF:
-_n_estimators = 1000
-_max_features = 'auto'
-_J = 0
-_test_size = 0.25
-_cv = KFold(n_splits=5, shuffle=True, random_state=_J)
-
-# without other and for bands
-band2 = "_B"
-#_wO = bavaria_reordered[bavaria_reordered.NC != 1]
-X = train_RF[train_RF.columns[train_RF.columns.str.contains(band2, na=False)]]
-y = train_RF['NC']
-
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=_test_size, random_state=_J)
-
-clf = RandomForestClassifier(
-    n_estimators=_n_estimators, max_features=_max_features, random_state=_J)
-clf.fit(X_train, y_train)
-y_pred = clf.predict(X=X_test)
-proba = clf.predict_proba(X_test)
-
-print('###########Band and RF ##############')
-print('Accuracy of classifier on training set: {:.2f}'
-      .format(clf.score(X_train, y_train)))
-print('Accuracy of classifier on test set: {:.2f}'
-      .format(clf.score(X_test, y_test)))
-score = cross_val_score(clf, X, y, cv=_cv)
-print('Accuracy of classifier Cross Validation: {:.2f}'
-      .format(score.mean()))
-confusion = pd.DataFrame()
-confusion['y_pred'] = y_pred
-confusion['y_test'] = y_test.values
-#printConfusionResults(confusion)
-# %%
-printConfusionResults(confusion)
 # %%

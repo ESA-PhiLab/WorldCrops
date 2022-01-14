@@ -263,7 +263,7 @@ plt.title('Embedding of the training set by UMAP', fontsize=24);
 # %%
 svc = SVC().fit(trans.embedding_, y_train)
 # %%
-%time test_embedding = trans.transform(X_test[test])
+#time test_embedding = trans.transform(X_test[test])
 plt.scatter(test_embedding[:, 0], test_embedding[:, 1], s= 5, c=y_test, cmap='Spectral')
 plt.title('Embedding of the test set by UMAP', fontsize=24);
 # %%

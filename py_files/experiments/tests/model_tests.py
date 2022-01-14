@@ -44,25 +44,25 @@ own = MyDataSet(input, 3)
 
 #load data for bavaria
 bavaria_train = pd.read_excel(
-    "../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx")
+    "../../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx")
 bavaria_test = pd.read_excel(
-    "../../data/cropdata/Bavaria/sentinel-2/Test_bavaria.xlsx")
+    "../../../data/cropdata/Bavaria/sentinel-2/Test_bavaria.xlsx")
 
 bavaria_reordered = pd.read_excel(
-    '../../data/cropdata/Bavaria/sentinel-2/data2016-2018.xlsx', index_col=0)
+    '../../../data/cropdata/Bavaria/sentinel-2/data2016-2018.xlsx', index_col=0)
 bavaria_test_reordered = pd.read_excel(
-    '../../data/cropdata/Bavaria/sentinel-2/TestData.xlsx', index_col=0)
+    '../../../data/cropdata/Bavaria/sentinel-2/TestData.xlsx', index_col=0)
 
 
 train = utils.clean_bavarian_labels(bavaria_train)
 test = utils.clean_bavarian_labels(bavaria_test)
 # %%
-test.NC.unique()
+train.head()
 # %%
 #tsai needs (samples,features,timestemps)
 # only for tsai !
 
-
+'''
 n_fields = len(train.id.unique())
 n_days = 14
 feature_list = train.columns[train.columns.str.contains("B", na=False)].tolist()
@@ -80,7 +80,7 @@ tfms = [None, TSClassification()]
 batch_tfms = [TSStandardize(by_sample=True)]
 check_data(X, y, splits)
 dls100 = get_ts_dls(X, y, splits=splits, tfms=tfms, batch_tfms=batch_tfms)
-
+'''
 # %%
 # parameters
 input_dim = 32 * 32 * 3
@@ -93,19 +93,19 @@ pl.seed_everything(42)
 #model = MLP(input_dim, num_classes)
 #model = RNN_LM(3, 1, 128)
 
-
 # %%
-#clsmembers = inspect.getmembers(sys.modules['model'], inspect.isclass)
-#clsmembers
+feature_list = train.columns[train.columns.str.contains('B')]
+ts_data = TimeSeriesDataSet(train, feature_list.tolist(), 'NC')
 
+ts_data[6][1]
 
 
 # %%
 # train breizhcrops
-
-model = bc.models.TransformerModel(num_classes=7)
+import tqdm
+model = Attention(num_classes = 7)#bc.models.TransformerModel(num_classes=7)
 model.train()
-dataset = bc.BreizhCrops("belle-ile")
+#dataset = bc.BreizhCrops("belle-ile")
 feature_list = train.columns[train.columns.str.contains('B')]
 ts_data = TimeSeriesDataSet(train, feature_list.tolist(), 'NC')
 dataloader = DataLoader(ts_data,batch_size=3,shuffle=True,drop_last=False,num_workers=2)
@@ -123,10 +123,10 @@ for epoch in range(5):
       optimizer.step()
       pbar.set_description(f"idx {idx}: loss {loss:.2f}")
 
-# %%
-model
+
 # %%
 #test model
+import tqdm
 feature_list = test.columns[test.columns.str.contains('B')]
 ts_testdata = TimeSeriesDataSet(test, feature_list.tolist(), 'NC')
 dataloader_test = DataLoader(ts_testdata,batch_size=3,shuffle=True,drop_last=False,num_workers=2)
@@ -155,9 +155,15 @@ def test_epoch(model, criterion, dataloader, device):
         return torch.stack(losses), torch.cat(y_true_list), torch.cat(y_pred_list), torch.cat(y_score_list)
 
 import sklearn 
-losses, y_true, y_pred, y_score = test_epoch( model, torch.nn.CrossEntropyLoss(), dataloader_test, device )
-print(sklearn.metrics.classification_report(y_true.cpu(), y_pred.cpu()))
+losses, y_true, y_pred, y_score = test_epoch( model, torch.nn.CrossEntropyLoss(), dataloader, device )
 # %%
+from sklearn.metrics import classification_report
+print(classification_report(y_true.cpu(), y_pred.cpu()))
+
+# %%
+
+# %%
+'''
 # train own implementation
 import torch
 import tqdm
@@ -181,28 +187,34 @@ for epoch in range(5):
       optimizer.step()
       pbar.set_description(f"idx {idx}: loss {loss:.2f}")
 # %%
+from sklearn.metrics import classification_report
 losses, y_true, y_pred, y_score = test_epoch( model, torch.nn.CrossEntropyLoss(), dataloader_test, device )
-print(sklearn.metrics.classification_report(y_true.cpu(), y_pred.cpu()))
-# %%
-model
-# %%
-#train own again
-import breizhcrops as bc
-dataset = bc.BreizhCrops("belle-ile")
+print(classification_report(y_true.cpu(), y_pred.cpu()))'''
 
 # %%
 feature_list = train.columns[train.columns.str.contains('B')]
 ts_data = TimeSeriesDataSet(train, feature_list.tolist(), 'NC')
-dataloader = DataLoader(ts_data,batch_size=3,shuffle=True,drop_last=False,num_workers=2)
+dataloader = DataLoader(ts_data,batch_size=3,shuffle=True,drop_last=True,num_workers=2)
 
 model1 = Attention_LM(num_classes = 7)
 model1.train()
 
 # %%
-model1
-# %%
+from pytorch_lightning.callbacks.progress import TQDMProgressBar
+class MeterlessProgressBar(TQDMProgressBar):
+
+    def init_train_tqdm(self):
+        bar = super().init_train_tqdm()
+        bar.dynamic_ncols = False
+        bar.ncols = 0
+        return bar
+
+bar = MeterlessProgressBar()
+
 trainer = pl.Trainer(auto_scale_batch_size='power', gpus=0, deterministic=True, max_epochs=5)
 trainer.fit(model1, dataloader)
+# %%
+
 
 # %%
 import tqdm
@@ -228,8 +240,8 @@ def test_epoch(model, criterion, dataloader, device):
 
         return torch.stack(losses), torch.cat(y_true_list), torch.cat(y_pred_list), torch.cat(y_score_list)
 
-losses, y_true, y_pred, y_score = test_epoch( model1, torch.nn.CrossEntropyLoss(), dataloader_test, device )
-print(sklearn.metrics.classification_report(y_true.cpu(), y_pred.cpu()))
+losses, y_true, y_pred, y_score = test_epoch( model1, torch.nn.CrossEntropyLoss(), dataloader, device )
+print(classification_report(y_true.cpu(), y_pred.cpu()))
 # %%
 
 report = pd.DataFrame(sklearn.metrics.classification_report(y_true = y_true.cpu(), y_pred = y_pred.cpu(), output_dict=True)).transpose()

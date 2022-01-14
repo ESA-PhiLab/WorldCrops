@@ -24,6 +24,12 @@ py_files/lightning_logs
 py_files/experiments/lightning_logs
 py_files/experiments/cifar-10-batches-py
 py_files/experiments/cifar-10-python.tar.gz
+py_files/experiments/tests/lightning_logs
+py_files/experiments/tests/cifar-10-batches-py
+py_files/experiments/tests/cifar-10-python.tar.gz
+lightning_logs/
+Pipfile
+Pipfile.lock
 
 #pychache
 py_files/__pycache__/*

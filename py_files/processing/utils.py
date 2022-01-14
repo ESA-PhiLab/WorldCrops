@@ -1,6 +1,15 @@
 from datetime import datetime
 import random
 
+def rewrite_id_CustomDataSet(df):
+    #rewrite the 'id' in order to have an ascending order
+    newid = 0
+    df = df.copy()
+    groups = df.groupby('id')
+    for id, group in groups:
+        df.loc[df.id == id, 'id'] = newid
+        newid +=1
+    return df
 
 def clean_bavarian_labels(dataframe):
     df = dataframe.copy()
@@ -19,15 +28,15 @@ def clean_bavarian_labels(dataframe):
     df.loc[(df.NC == 311)|(df.NC == 489), 'NC'] = 311  #Winter rapeseed
     #WW = 115
     #ZR = 603
-    df.loc[~((df.NC == 600)|(df.NC == 131)|(df.NC == 400)|(df.NC == 311)|(df.NC == 115)|(df.NC == 603)), 'NC'] = 0  #rejection class Other
+    df.loc[~((df.NC == 600)|(df.NC == 131)|(df.NC == 400)|(df.NC == 311)|(df.NC == 115)|(df.NC == 603)), 'NC'] = 6  #rejection class Other
 
     #rewrite classes for easy handling
-    df.loc[(df.NC == 600), 'NC'] = 1 
-    df.loc[(df.NC == 131), 'NC'] = 2 
-    df.loc[(df.NC == 400), 'NC'] = 3 
-    df.loc[(df.NC == 311), 'NC'] = 4 
-    df.loc[(df.NC == 115), 'NC'] = 5 
-    df.loc[(df.NC == 603), 'NC'] = 6
+    df.loc[(df.NC == 600), 'NC'] = 0 
+    df.loc[(df.NC == 131), 'NC'] = 1 
+    df.loc[(df.NC == 400), 'NC'] = 2 
+    df.loc[(df.NC == 311), 'NC'] = 3 
+    df.loc[(df.NC == 115), 'NC'] = 4 
+    df.loc[(df.NC == 603), 'NC'] = 5
 
     return df
 
