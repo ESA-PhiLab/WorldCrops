@@ -1,5 +1,8 @@
 from datetime import datetime
 import random
+import pandas as pd
+import sklearn
+
 
 def rewrite_id_CustomDataSet(df):
     #rewrite the 'id' in order to have an ascending order
@@ -120,3 +123,34 @@ def get_embeddings_plot():
     # set aspect ratio
     ratio = 1. / ax.get_data_ratio()
     ax.set_aspect(ratio, adjustable='box')
+
+def printConfusionResults(confusion):
+    ''' confusion matrix: 
+    Input: dataframe with ['y_pred'] and ['y_test'] columns '''
+    
+    #PA
+    tmp = pd.crosstab(confusion["y_test"],confusion["y_pred"],margins=True,margins_name='Total').T
+    tmp['UA']=0
+    for idx, row in tmp.iterrows(): 
+        #print(idx)
+        tmp['UA'].loc[idx] = round(((row[idx])/ row['Total']*100),2)
+
+    #UA
+    tmp2 = pd.crosstab(confusion["y_test"],confusion["y_pred"],margins=True,margins_name='Total')
+    tmp['PA']=0
+    for idx, row in tmp2.iterrows(): 
+        #print(row[idx],row.sum())
+        tmp['PA'].loc[idx] = round(((row[idx])/ row['Total'])*100,2)
+
+
+    #hier überprüfen ob alles stimmt
+
+    print('Diag:', tmp.values.diagonal().sum()-tmp['Total'].tail(1)[0] )
+    print('Ref:', tmp['Total'].tail(1).values[0])
+    oa = (tmp.values.diagonal().sum() - tmp['Total'].tail(1)[0]) / tmp['Total'].tail(1)[0]
+    print('OverallAccurcy:',oa)
+
+    print('Kappa:',round(sklearn.metrics.cohen_kappa_score(confusion["y_pred"],confusion["y_test"],weights='quadratic'),4))
+    print('#########')
+    print("Ac:",round( sklearn.metrics.accuracy_score(confusion["y_pred"],confusion["y_test"]) ,4))
+    print(tmp)

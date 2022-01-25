@@ -49,12 +49,12 @@ from torch.utils.data.sampler import SubsetRandomSampler
 #computer_setup()
 
 #some definitions for Transformers
-batch_size = 3
+batch_size = 32
 test_size = 0.25
 SEED = 42
-num_workers=2
+num_workers=4
 shuffle_dataset =True
-_epochs = 5
+_epochs = 1
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # %%
@@ -128,7 +128,7 @@ dataloader_train_all = DataLoader(ts_train_all,batch_size=batch_size, shuffle=Tr
 dataloader_test_all = DataLoader(ts_test_all,batch_size=batch_size, shuffle=True,drop_last=True,num_workers=num_workers)
 
 # one percent sample data for 2018
-_2018 = test_2018.copy()
+_2018 = train[train.Year == 2018].copy()
 samples = pd.DataFrame()
 for i in range(0,6):
     id = _2018[(_2018.NC == i)].sample(1).id
@@ -143,7 +143,125 @@ ts_data_train = TimeSeriesDataSet(percent1, feature_list.tolist(), 'NC')
 dataloader18_1percent_train = torch.utils.data.DataLoader(ts_data_train, batch_size=batch_size, shuffle=True,drop_last=True,num_workers=num_workers)
 
 # %%
-len(train.id.unique())
+##########################
+# Attention Transformer 
+##########################
+
+import pytorch_lightning as pl
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from sklearn.metrics import accuracy_score
+class Attention_LM2(pl.LightningModule):
+
+    def __init__(self, input_dim = 13, num_classes = 7, d_model = 64, n_head = 2, d_ffn = 128, nlayers = 2, dropout = 0.018, activation="relu", lr = 0.0002):
+        super().__init__()
+        """
+        Args:
+            input_dim: amount of input dimensions -> Sentinel2 has 13 bands
+            num_classes: amount of target classes
+            dropout: default = 0.018
+            d_model: default = 64 #number of expected features
+            n_head: default = 2 #number of heads in multiheadattention models
+            d_ff: default = 128 #dim of feedforward network 
+            nlayers: default = 2 #number of encoder layers
+            + : https://pytorch.org/docs/stable/generated/torch.nn.Transformer.html
+        Input:
+            batch size(N) x T x D
+        Output
+            batch size(N) x Targets
+        """
+
+        self.model_type = 'Transformer_LM'
+        self.losses = list()
+
+        # Hyperparameters
+        self.lr = lr
+        self.ce = nn.CrossEntropyLoss()
+        self.save_hyperparameters()
+
+        # Layers
+        encoder_layers = nn.TransformerEncoderLayer(d_model, n_head, dim_feedforward=d_ffn, dropout = dropout, activation=activation, batch_first=True)
+        self.inlinear = nn.Linear(input_dim, d_model)
+        self.relu = nn.ReLU()
+        self.transformer_encoder = nn.TransformerEncoder(encoder_layers, nlayers, nn.LayerNorm(d_model))
+        self.outlinear = nn.Linear(d_model, num_classes)
+
+        
+    def forward(self,x):
+        # N x T x D -> N x T x d_model / Batch First!
+        x = self.inlinear(x) 
+        x = self.relu(x)
+        x = self.transformer_encoder(x)
+        x = x.max(1)[0]
+        x = self.relu(x)
+        x = self.outlinear(x)
+        x = F.log_softmax(x, dim=-1)
+        return x
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        y_pred = self.forward(x)
+        loss = self.ce(y_pred, y)
+        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        return loss
+
+    def training_epoch_end(self, outputs):
+        pass
+
+    def validation_step(self, val_batch, batch_idx):
+        x, y = val_batch
+        y_pred = self.forward(x)
+        loss = self.ce(y_pred, y)
+        self.log('val_loss', loss)
+        return loss
+
+    def validation_epoch_end(self, outputs):
+        pass
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+        return optimizer
+
+    def test_step(self, test_batch, batch_idx):
+        x, y = test_batch
+        y_pred = self.forward(x)
+        loss = self.ce(y_pred, y)
+        #accuracy = accuracy_score(y,y_pred)
+        self.log('test_results', {'test_loss' : loss},prog_bar=True)
+        return {'loss' : loss, 'y_pred' : y_pred, 'y_true' : y, 'y_pred_idx': y_pred.argmax(-1), 'y_score': y_pred.exp()}
+
+    def test_step_end(self, output):
+        return output
+
+    def test_epoch_end(self, outputs):
+        accuracy = list()
+        y_true_list = list()
+        y_pred_list = list()
+        y_score_list = list()
+
+        for item in outputs:
+            self.losses.append(item['y_true'])
+            y_pred_list.append(item['y_pred'])
+
+
+        #print(accuracy_score(torch.cat(y_true_list),torch.cat(y_pred_list)))
+        self.log('y_true_list',torch.cat(self.losses), on_step=False, on_epoch=True, prog_bar=True, logger=True) 
+
+
+            #for out in test_outputs:
+                #print(out)
+                #y_true = out['test_results']['y_true']
+                #y_pred = out['test_results']['y_pred']
+                #accuracy.append(accuracy_score(y_true,y_pred))
+
+            #y_true_list.append(out['y_true'])
+            #y_pred_list.append(logprobabilities.argmax(-1))
+            #y_score_list.append(logprobabilities.exp())
+
+        #print(f"Test Accuracy: {round(torch.mean(torch.stack(accuracy)),2)}")
+
+
 
 # %%
 ############################################################################
@@ -151,22 +269,34 @@ len(train.id.unique())
 ############################################################################
 
 # First experiment train test split with all data
-model1 = Attention_LM(num_classes = 6)
-model1.train()
+# Parametrisation based on https://arxiv.org/pdf/1905.11893.pdf
+model1 = Attention_LM2(num_classes = 6,n_head=2,nlayers=3)
+#model1.train()
 
 trainer = pl.Trainer( gpus=1 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs=_epochs)
-trainer.fit(model1, dataloader18_1percent_train)
+trainer.fit(model1, dataloader_train_all)
+# %%
+bla= trainer.test(model1, dataloader_train_all)
+# %%
+bla
+# %%
+test = {'test_results': {'test_loss': 1.1572, 'y_pred': -2.3070,'y_true': 2.5126}}
 
-"""
+test['test_results']
+
+# %%
+#irgendwas stimmt nicht mit dem dataloader 
+#die utils function mit id in timeseries einbauen
+
 # Second experiment train 2016 and 17 - test on 2018
-model2 = Attention_LM(num_classes = 6)
+"""model2 = Attention_LM(num_classes = 6, nlayers=3)
 model2.train()
 
 trainer = pl.Trainer( gpus=1 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs=_epochs)
 trainer.fit(model2, dataloader1617_train)
 
 # Third experiment train 2016 and 17 + 1 percent from 2018 - test on 2018
-model3 = Attention_LM(num_classes = 6)
+model3 = Attention_LM(num_classes = 6, nlayers=3)
 model3.train()
 
 trainer = pl.Trainer( gpus=1 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs=_epochs)
@@ -174,6 +304,7 @@ trainer.fit(model3, dataloader18_1percent_train)"""
 
 # %%
 #trainer.test(_model,test_dl)
+
 # %%
 
 def test_epoch(model, criterion, test_dl, device):
@@ -192,21 +323,45 @@ def test_epoch(model, criterion, test_dl, device):
                 iterator.set_description(f"test loss={loss:.2f}")
                 losses.append(loss)
                 y_true_list.append(y_true)
+                print(logprobabilities.shape)
                 y_pred_list.append(logprobabilities.argmax(-1))
                 y_score_list.append(logprobabilities.exp())
 
         return torch.stack(losses), torch.cat(y_true_list), torch.cat(y_pred_list), torch.cat(y_score_list)
 
- # %%
-losses, y_true, y_pred, y_score = test_epoch( _model, torch.nn.CrossEntropyLoss(), dataloader_test_all, device )
-from sklearn.metrics import classification_report
-print(classification_report(y_true.cpu(), y_pred.cpu()))
-
 # %%
+
+trainer.test(model1, dataloader_train_all)
+# %%
+losses
+ # %%
+losses, y_true, y_pred, y_score = test_epoch( model1, torch.nn.CrossEntropyLoss(), dataloader_test_all, device )
+from sklearn.metrics import classification_report
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import confusion_matrix
+
+print(classification_report(y_true.cpu(), y_pred.cpu()))
+print("OA:",round(accuracy_score(y_true, y_pred),2))
+# %%
+
+logprobabilities
+# %%
+
+losses2, y_true2, y_pred2, y_score2 = test_epoch( model2, torch.nn.CrossEntropyLoss(), dataloader18_test, device )
+losses3, y_true3, y_pred3, y_score3 = test_epoch( model3, torch.nn.CrossEntropyLoss(), dataloader18_test, device )
+
+print("Second Experiment:")
+print(classification_report(y_true2.cpu(), y_pred2.cpu()))
+print("OA:",round((y_true2, y_pred2)))
+
+print("Third Experiment:")
+print(classification_report(y_true3.cpu(), y_pred3.cpu()))
+print("OA:",round(accuracy_score(y_true3, y_pred3)))
+
 #https://towardsdatascience.com/pytorch-lightning-making-your-training-phase-cleaner-and-easier-845c4629445b
 
 #find learning rate
-lr_finder = trainer.tuner.lr_find(model, 
+"""lr_finder = trainer.tuner.lr_find(model1, 
                         min_lr=0.0005, 
                         max_lr=0.005,
                         mode='linear')
@@ -216,9 +371,9 @@ fig = lr_finder.plot(suggest=True)
 fig.show()
 # %%
 # find batch size
-trainer.tune(model)
+trainer.tune(model1)"""
 # %%
-'''
+"""
 # %%      
 ############################################################################
 # Random Forest all data
@@ -258,10 +413,25 @@ print('Accuracy of classifier Cross Validation: {:.2f}'
 confusion = pd.DataFrame()
 confusion['y_pred'] = y_pred
 confusion['y_test'] = y_test.values
-#printConfusionResults(confusion)
 # %%
-printConfusionResults(confusion)
+#utils.printConfusionResults(confusion)
+
+from sklearn.metrics import classification_report,accuracy_score
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+
+y_test =confusion['y_test'].values
+y_pred = confusion['y_pred'].values
+classification_report(y_test,y_pred)
 # %%
+print("Overall Accuracy:", accuracy_score(y_test,y_pred))
+
+# %%
+
+disp = ConfusionMatrixDisplay.from_predictions(y_test, y_pred, cmap=plt.cm.Blues)
+#disp.plot()
+
+# %%
+
 ############################################################################
 # Random Forest - 2018 for test
 ############################################################################
@@ -303,7 +473,13 @@ confusion['y_pred'] = y_pred
 confusion['y_test'] = y_test.values
 #printConfusionResults(confusion)
 # %%
-printConfusionResults(confusion)
+
+
+
+# %%
+
+
+
 # %%
 ############################################################################
 # Random Forest - 2018 for test

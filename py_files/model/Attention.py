@@ -6,7 +6,7 @@ import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+from sklearn.metrics import accuracy_score
 class Attention(nn.Module):
   
     def __init__(self, input_dim = 13, num_classes = 7, d_model = 64, n_head = 2, d_ffn = 128, nlayers = 2, dropout = 0.018, activation="relu"):
@@ -26,6 +26,7 @@ class Attention(nn.Module):
         """
 
         self.model_type = 'Transformer'
+        
 
         self.inlinear = nn.Linear(input_dim, d_model)
         self.relu = nn.ReLU()
@@ -68,11 +69,15 @@ class Attention_LM(pl.LightningModule):
         Output
             batch size(N) x Targets
         """
+
         self.model_type = 'Transformer_LM'
+
+        # Hyperparameters
         self.lr = lr
         self.ce = nn.CrossEntropyLoss()
         self.save_hyperparameters()
 
+        # Layers
         encoder_layers = nn.TransformerEncoderLayer(d_model, n_head, dim_feedforward=d_ffn, dropout = dropout, activation=activation, batch_first=True)
         self.inlinear = nn.Linear(input_dim, d_model)
         self.relu = nn.ReLU()
@@ -119,4 +124,29 @@ class Attention_LM(pl.LightningModule):
         x, y = test_batch
         y_pred = self.forward(x)
         loss = self.ce(y_pred, y)
-        self.log("test_loss", loss)
+        self.log('test_loss', loss)
+        return {'loss' : loss, 'y_pred' : y_pred, 'y_true' : y, 'y_pred_idx': y_pred.argmax(-1), 'y_score': y_pred.exp()}
+
+
+    def test_step_end(self, test_outputs):
+        accuracy = list()
+        y_true_list = list()
+        y_pred_list = list()
+        y_score_list = list()
+        losses = list()
+
+        for out in test_outputs:
+            print(out['y_true'], type(out['y_true']))
+            accuracy.append(accuracy_score(out['y_true'],out['y_pred']))
+            y_true_list.append(out['y_true'])
+            #y_pred_list.append(logprobabilities.argmax(-1))
+            #y_score_list.append(logprobabilities.exp())
+
+
+        accuracy = torch.mean(torch.stack(accuracy))
+        print(f"Test Accuracy: {round(accuracy,2)}")
+
+        return torch.cat(y_true_list)
+
+
+        
