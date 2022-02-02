@@ -41,6 +41,9 @@ def clean_bavarian_labels(dataframe):
     df.loc[(df.NC == 115), 'NC'] = 4 
     df.loc[(df.NC == 603), 'NC'] = 5
 
+    #delete class 6 which is the class Other with various unidentified crops
+    df = df[df.NC != 6]
+
     return df
 
 def get_other_years(currentyear, yearlist):
