@@ -111,7 +111,7 @@ test_size = 0.25
 SEED = 42
 num_workers=4
 shuffle_dataset =True
-_epochs = 30
+_epochs = 3
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 #definitions for simsiam
@@ -126,50 +126,29 @@ lr = 0.05 * batch_size / 256
 transformer = Attention(num_classes = 6, n_head=4, nlayers=3)
 backbone  = nn.Sequential(*list(transformer.children())[:-1])
 backbone
+
 # %%
-
-class DataModule_augmentation(pl.LightningDataModule):
-    def __init__(self, data_dir: str = "./", batch_size = 32, num_workers = 2):
-        super().__init__()
-        self.data_dir = data_dir
-        self.transform = None
-        self.batch_size = batch_size
-        self.num_workers = num_workers
-        self.data = pd.read_excel(self.data_dir)
-        #list with selected features
-        self.feature_list = self.data.columns[self.data.columns.str.contains('B')]
-
-        #preprocess
-        self.data = clean_bavarian_labels(self.data)
-        #add additional ids for augmentation
-        years = [2016,2017,2018]
-        self.data = augment_df(self.data, years)
-
-        #data sets
-        self.train = None
-        self.validate = None
-        self.test = None
-
-    def setup(self, stage: Optional[str] = None):
-        ts_train = TimeSeriesPhysical(self.data, feature_list.tolist(), 'NC')
-
-        # Assign train/val datasets for use in dataloaders
-        if stage in (None, "fit"):
-            self.train = ts_train
-
-    def train_dataloader(self):
-        return DataLoader(self.train, batch_size=self.batch_size, shuffle=True, drop_last=True, num_workers=self.num_workers)
-
 dm_augmented = DataModule_augmentation(data_dir = '../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx', batch_size = batch_size, num_workers = num_workers)
+dm_augmented.setup('fit')
 
-# %%
-
-
-
-# %%
 model_sim = SimSiam_LM(backbone,num_ftrs=num_ftrs,proj_hidden_dim=proj_hidden_dim,pred_hidden_dim=pred_hidden_dim,out_dim=out_dim,lr=lr)
 trainer = pl.Trainer(gpus=1 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs = _epochs)
 trainer.fit(model_sim, datamodule=dm_augmented)
 trainer.save_checkpoint("../model/pretrained/simsiam.ckpt")
-# %%
+torch.save(backbone.state_dict(), "../model/pretrained/backbone.ckpt")
 
+# %%
+pretrained = torch.load("../model/pretrained/backbone.ckpt")
+
+# %%
+pretrained
+# %%
+the_model
+# %%
+#use pretrained backbone and finetune 
+transfer_model = Attention_Transfer(backbone = backbone, batch_size = batch_size)
+trainer = pl.Trainer( gpus=1 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs= _epochs)
+dm_bavaria2.setup(stage="fit")
+trainer.fit(transfer_model, datamodule = dm_bavaria2)
+
+# %%

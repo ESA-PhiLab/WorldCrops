@@ -171,7 +171,115 @@ class Attention_LM(pl.LightningModule):
         #Overall accuracy
         self.log('OA',round(acc,2))
 
+class Attention_Transfer(pl.LightningModule):
 
+    def __init__(self, lr = 0.0002, input_dim = 13, num_classes = 7,d_model = 64, backbone=None, batch_size  = 3):
+        super().__init__()
+        """
+        """
+
+        self.model_type = 'Transformer_LM'
+
+        # Hyperparameters
+        self.lr = lr
+        self.batch_size = batch_size
+        self.ce = nn.CrossEntropyLoss()
+        self.save_hyperparameters()
+
+        # Layers
+        self.backbone = backbone
+        self.outlinear = nn.Linear(d_model, num_classes)
+
+        if backbone == None:
+            print('Backbone not loaded')
+            return
+
+        # layers are frozen by using eval()
+        self.backbone.eval()
+        # freeze params
+        for param in self.backbone.parameters():
+            param.requires_grad = False
+
+        
+    def forward(self,x):
+        # N x T x D -> N x T x d_model / Batch First!
+        x = self.backbone(x)
+        x = self.outlinear(x)
+        x = F.log_softmax(x, dim=-1)
+        return x
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        y_pred = self.forward(x)
+        loss = self.ce(y_pred, y)
+        self.log('train_loss', loss, prog_bar=True, logger=True)
+        y_true = y.cpu().detach()
+        y_pred = y_pred.argmax(-1).cpu().detach()
+        return {'loss' : loss, 'y_pred' : y_pred, 'y_true' : y}
+
+    def training_epoch_end(self, outputs):
+        y_true_list = list()
+        y_pred_list = list()
+
+        for item in outputs:
+            y_true_list.append(item['y_true'])
+            y_pred_list.append(item['y_pred'])
+
+        acc = accuracy_score(torch.cat(y_true_list),torch.cat(y_pred_list))
+        #overall accuracy
+        self.log('OA',round(acc,2)) 
+
+    def validation_step(self, val_batch, batch_idx):
+        x, y = val_batch
+        y_pred = self.forward(x)
+        loss = self.ce(y_pred, y)
+        self.log('val_loss', loss)
+        y_true = y.cpu().detach()
+        y_pred = y_pred.argmax(-1).cpu().detach()
+        return {'loss' : loss, 'y_pred' : y_pred, 'y_true' : y}
+
+
+    def validation_epoch_end(self, outputs):
+        y_true_list = list()
+        y_pred_list = list()
+
+        for item in outputs:
+            y_true_list.append(item['y_true'])
+            y_pred_list.append(item['y_pred'])
+
+        acc = accuracy_score(torch.cat(y_true_list),torch.cat(y_pred_list))
+        #overall accuracy
+        self.log('OA',round(acc,2))
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+        return optimizer
+
+    def test_step(self, test_batch, batch_idx):
+        x, y = test_batch
+        y_pred = self.forward(x)
+        loss = self.ce(y_pred, y)
+        self.log('test_results', {'test_loss' : loss},on_step=True,prog_bar=True)
+
+        y_true = y.cpu().detach()
+        y_pred = y_pred.argmax(-1).cpu().detach()
+        return {'loss' : loss, 'y_pred' : y_pred, 'y_true' : y}
+
+    def test_step_end(self, outputs):
+        return outputs
+
+    def test_epoch_end(self, outputs):
+        #gets all results from test_steps
+        y_true_list = list()
+        y_pred_list = list()
+
+        for item in outputs:
+            y_true_list.append(item['y_true'])
+            y_pred_list.append(item['y_pred'])
+
+        acc = accuracy_score(torch.cat(y_true_list),torch.cat(y_pred_list))
+        #Overall accuracy
+        self.log('OA',round(acc,2))
         
 
 
