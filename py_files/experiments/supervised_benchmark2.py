@@ -136,21 +136,19 @@ trainer.test(model, datamodule = dm_bavaria)
 # %%
 # Second experiment train 2016 and 17 - test on 2018
 model2 = Attention_LM(num_classes = 6, n_head=4, nlayers=3, batch_size = batch_size)
-trainer2 = pl.Trainer( gpus=1 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs= _epochs)
-
 dm_bavaria2.setup(stage="fit")
-trainer2.fit(model2, datamodule = dm_bavaria2)
+trainer.fit(model2, datamodule = dm_bavaria2)
 dm_bavaria2.setup(stage="test")
-trainer2.test(model2, datamodule = dm_bavaria2)
+trainer.test(model2, datamodule = dm_bavaria2)
 
 # %%
-trainer3 = pl.Trainer( gpus=1 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs= _epochs)
+trainer = pl.Trainer( gpus=1 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs= _epochs)
 model3 = Attention_LM(num_classes = 6, n_head=4, nlayers=3, batch_size = batch_size)
 
 dm_bavaria3.setup(stage="fit")
-trainer3.fit(model3, datamodule = dm_bavaria3)
+trainer.fit(model3, datamodule = dm_bavaria3)
 dm_bavaria3.setup(stage="test")
-trainer3.test(model3, datamodule = dm_bavaria3)
+trainer.test(model3, datamodule = dm_bavaria3)
 
  # %%
 

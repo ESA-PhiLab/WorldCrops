@@ -1,0 +1,175 @@
+# %%
+# compare the crop type classification of RF and SimSiam
+import sys
+sys.path.append('./model')
+sys.path.append('..')
+
+from model import *
+from processing import *
+import math
+
+import torch.nn as nn
+import torchvision
+import lightly
+
+import contextily as ctx
+import matplotlib.pyplot as plt
+import breizhcrops
+import torch
+import seaborn as sns
+import numpy as np
+import pandas as pd
+import geopandas as gpd
+from breizhcrops import BreizhCrops
+from breizhcrops.datasets.breizhcrops import BANDS as allbands
+
+import torch
+import tqdm
+
+import sklearn
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import mean_squared_error as MSE
+from sklearn.preprocessing import MinMaxScaler
+import pickle
+from sklearn.model_selection import KFold
+from sklearn.model_selection import cross_val_predict
+from sklearn.model_selection import cross_val_score
+
+import sklearn.datasets
+import pandas as pd
+import numpy as np
+import umap
+import umap.plot
+
+from sklearn.metrics import classification_report
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import confusion_matrix
+
+#tsai could be helpful
+#from tsai.all import *
+#computer_setup()
+
+#some definitions for Transformers
+batch_size = 32
+test_size = 0.25
+SEED = 42
+num_workers=4
+shuffle_dataset =True
+_epochs = 30
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+
+#test function
+def test_epoch(model, criterion, test_dl, device):
+    model.eval()
+    with torch.no_grad():
+        losses = list()
+        y_true_list = list()
+        y_pred_list = list()
+        y_score_list = list()
+
+        with tqdm.tqdm(enumerate(test_dl), total=len(test_dl), leave=True) as iterator:
+            for idx, batch in iterator:
+                x, y_true = batch
+                logprobabilities = model.forward(x.to(device))
+                loss = criterion(logprobabilities, y_true.to(device))
+                iterator.set_description(f"test loss={loss:.2f}")
+                losses.append(loss)
+                y_true_list.append(y_true)
+                #print(logprobabilities.shape)
+                y_pred_list.append(logprobabilities.argmax(-1))
+                y_score_list.append(logprobabilities.exp())
+
+        return torch.stack(losses), torch.cat(y_true_list), torch.cat(y_pred_list), torch.cat(y_score_list)
+
+# %%
+#load data for bavaria
+bavaria_reordered = pd.read_excel(
+    '../../data/cropdata/Bavaria/sentinel-2/data2016-2018.xlsx', index_col=0)
+bavaria_test_reordered = pd.read_excel(
+    '../../data/cropdata/Bavaria/sentinel-2/TestData.xlsx', index_col=0)
+
+#delete first two entries with no change
+#bavaria_train = bavaria_train.loc[~((bavaria_train.id == 0)|(bavaria_train.id == 1))]
+#bavaria_reordered = bavaria_reordered.loc[~((bavaria_reordered.index == 0)|(bavaria_reordered.index == 1))]
+
+train_RF = utils.clean_bavarian_labels(bavaria_reordered)
+test_RF = utils.clean_bavarian_labels(bavaria_test_reordered)
+
+dm_bavaria = BavariaDataModule(data_dir = '../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx', batch_size = batch_size, num_workers = num_workers)
+dm_bavaria2 = Bavaria1617DataModule(data_dir = '../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx', batch_size = batch_size, num_workers = num_workers)
+dm_bavaria3 = Bavaria1percentDataModule(data_dir = '../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx', batch_size = batch_size, num_workers = num_workers)
+# %%
+# Vorgehen:
+# 1. Pre-Train transformer unsupervised mit allen Daten (typische Augmentation + physikalisch)
+# 2. Finetune with data 16/17 + 1 prozent 18
+
+#some definitions for Transformers
+batch_size = 32
+test_size = 0.25
+SEED = 42
+num_workers=4
+shuffle_dataset =True
+_epochs = 30
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+#definitions for simsiam
+num_ftrs = 64
+proj_hidden_dim =14
+pred_hidden_dim =14
+out_dim =14
+# scale the learning rate
+lr = 0.05 * batch_size / 256
+# %%
+#model definition
+transformer = Attention(num_classes = 6, n_head=4, nlayers=3)
+backbone  = nn.Sequential(*list(transformer.children())[:-1])
+backbone
+# %%
+
+class DataModule_augmentation(pl.LightningDataModule):
+    def __init__(self, data_dir: str = "./", batch_size = 32, num_workers = 2):
+        super().__init__()
+        self.data_dir = data_dir
+        self.transform = None
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+        self.data = pd.read_excel(self.data_dir)
+        #list with selected features
+        self.feature_list = self.data.columns[self.data.columns.str.contains('B')]
+
+        #preprocess
+        self.data = clean_bavarian_labels(self.data)
+        #add additional ids for augmentation
+        years = [2016,2017,2018]
+        self.data = augment_df(self.data, years)
+
+        #data sets
+        self.train = None
+        self.validate = None
+        self.test = None
+
+    def setup(self, stage: Optional[str] = None):
+        ts_train = TimeSeriesPhysical(self.data, feature_list.tolist(), 'NC')
+
+        # Assign train/val datasets for use in dataloaders
+        if stage in (None, "fit"):
+            self.train = ts_train
+
+    def train_dataloader(self):
+        return DataLoader(self.train, batch_size=self.batch_size, shuffle=True, drop_last=True, num_workers=self.num_workers)
+
+dm_augmented = DataModule_augmentation(data_dir = '../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx', batch_size = batch_size, num_workers = num_workers)
+
+# %%
+
+
+
+# %%
+model_sim = SimSiam_LM(backbone,num_ftrs=num_ftrs,proj_hidden_dim=proj_hidden_dim,pred_hidden_dim=pred_hidden_dim,out_dim=out_dim,lr=lr)
+trainer = pl.Trainer(gpus=1 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs = _epochs)
+trainer.fit(model_sim, datamodule=dm_augmented)
+trainer.save_checkpoint("../model/pretrained/simsiam.ckpt")
+# %%
+

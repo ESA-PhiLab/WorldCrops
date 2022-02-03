@@ -291,14 +291,11 @@ test['test_results']
 # Second experiment train 2016 and 17 - test on 2018
 """model2 = Attention_LM(num_classes = 6, nlayers=3)
 model2.train()
-
 trainer = pl.Trainer( gpus=1 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs=_epochs)
 trainer.fit(model2, dataloader1617_train)
-
 # Third experiment train 2016 and 17 + 1 percent from 2018 - test on 2018
 model3 = Attention_LM(num_classes = 6, nlayers=3)
 model3.train()
-
 trainer = pl.Trainer( gpus=1 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs=_epochs)
 trainer.fit(model3, dataloader18_1percent_train)"""
 
@@ -365,7 +362,6 @@ print("OA:",round(accuracy_score(y_true3, y_pred3)))
                         min_lr=0.0005, 
                         max_lr=0.005,
                         mode='linear')
-
 # Plots the optimal learning rate
 fig = lr_finder.plot(suggest=True)
 fig.show()
@@ -545,5 +541,4 @@ samples
 
 # %%
 train_1617.describe()
-# %%
-'''
+
