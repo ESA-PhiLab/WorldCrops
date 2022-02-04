@@ -138,10 +138,9 @@ trainer.save_checkpoint("../model/pretrained/simsiam.ckpt")
 torch.save(backbone.state_dict(), "../model/pretrained/backbone.ckpt")
 
 # %%
-pretrained = torch.load("../model/pretrained/backbone.ckpt")
-
-# %%
-pretrained
+#pretrained = torch.load("../model/pretrained/backbone.ckpt")
+#pretrained
+#backbone.load_state_dict(torch.load("../model/pretrained/backbone.ckpt"))
 
 # %%
 #use pretrained backbone and finetune 
