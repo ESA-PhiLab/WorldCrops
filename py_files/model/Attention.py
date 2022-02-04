@@ -173,37 +173,49 @@ class Attention_LM(pl.LightningModule):
 
 class Attention_Transfer(pl.LightningModule):
 
-    def __init__(self, lr = 0.0002, input_dim = 13, num_classes = 7,d_model = 64, backbone=None, batch_size  = 3):
+    def __init__(self, lr = 0.0002, input_dim = 13, num_classes = 7,d_model = 64, backbone=None, batch_size  = 3, transfer = False):
         super().__init__()
         """
+        Args:
+            input_dim: amount of input dimensions -> Sentinel2 has 13 bands
+            num_classes: amount of target classes
+            d_model: default = 64 #number of expected features
+            backbone: pretrained encoder
+            tranfer: if false -> don't update parameters of backbone (only new linear head) 
+                     if true > update all parameters (backbone + new head)
         """
 
         self.model_type = 'Transformer_LM'
+        self.transfer = transfer
 
         # Hyperparameters
         self.lr = lr
         self.batch_size = batch_size
         self.ce = nn.CrossEntropyLoss()
         self.save_hyperparameters()
-
+        
         # Layers
         self.backbone = backbone
+        self.relu = nn.ReLU()
         self.outlinear = nn.Linear(d_model, num_classes)
 
         if backbone == None:
             print('Backbone not loaded')
             return
 
-        # layers are frozen by using eval()
-        self.backbone.eval()
-        # freeze params
-        for param in self.backbone.parameters():
-            param.requires_grad = False
+        if self.transfer == False:
+            # freeze params
+            for param in self.backbone.parameters():
+                param.requires_grad = False
+
 
         
     def forward(self,x):
         # N x T x D -> N x T x d_model / Batch First!
         x = self.backbone(x)
+        #torch.Size([N, T, d_model])
+        x = x.max(1)[0]
+        x = self.relu(x)
         x = self.outlinear(x)
         x = F.log_softmax(x, dim=-1)
         return x
@@ -252,7 +264,11 @@ class Attention_Transfer(pl.LightningModule):
         self.log('OA',round(acc,2))
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+        if self.transfer:
+            optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+        else:
+            optimizer = torch.optim.Adam(self.outlinear.parameters(),lr = self.lr)
+        
         return optimizer
 
     def test_step(self, test_batch, batch_idx):

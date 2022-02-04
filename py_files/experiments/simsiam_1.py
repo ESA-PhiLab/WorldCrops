@@ -111,7 +111,7 @@ test_size = 0.25
 SEED = 42
 num_workers=4
 shuffle_dataset =True
-_epochs = 3
+_epochs = 30
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 #definitions for simsiam
@@ -142,13 +142,15 @@ pretrained = torch.load("../model/pretrained/backbone.ckpt")
 
 # %%
 pretrained
-# %%
-the_model
+
 # %%
 #use pretrained backbone and finetune 
-transfer_model = Attention_Transfer(backbone = backbone, batch_size = batch_size)
+transfer_model = Attention_Transfer(backbone = backbone, batch_size = batch_size, transfer=True)
 trainer = pl.Trainer( gpus=1 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs= _epochs)
 dm_bavaria2.setup(stage="fit")
 trainer.fit(transfer_model, datamodule = dm_bavaria2)
 
+# %%
+dm_bavaria2.setup(stage="test")
+trainer.test(transfer_model, datamodule = dm_bavaria2)
 # %%

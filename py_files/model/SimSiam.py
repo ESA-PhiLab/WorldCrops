@@ -47,7 +47,7 @@ class SimSiam(nn.Module):
 
 class SimSiam_LM(pl.LightningModule):
     def __init__(self, backbone = nn.Module, num_ftrs=64, proj_hidden_dim=14, 
-    pred_hidden_dim=14, out_dim=14, lr=0.06, weight_decay=5e-4,momentum=0.9,epochs = 10):
+    pred_hidden_dim=14, out_dim=14, lr=0.02, weight_decay=5e-4,momentum=0.9,epochs = 10):
         super().__init__()
         
         self.lr = lr
