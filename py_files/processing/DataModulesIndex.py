@@ -7,7 +7,7 @@ from torch.utils.data.sampler import SubsetRandomSampler
 from sklearn.model_selection import GroupShuffleSplit
 from .TimeSeriesDataSet import *
 
-class BavariaDataModule(pl.LightningDataModule):
+class IndexDataModule(pl.LightningDataModule):
     def __init__(self, data_dir: str = "./", batch_size = 32, num_workers = 2):
         super().__init__()
         self.data_dir = data_dir
@@ -16,9 +16,9 @@ class BavariaDataModule(pl.LightningDataModule):
         self.num_workers = num_workers
         self.data = pd.read_excel(self.data_dir)
         #list with selected features "Bands 1-13"
-        self.feature_list = self.data.columns[self.data.columns.str.contains('B')]
+        #self.feature_list = self.data.columns[self.data.columns.str.contains('B')]
         # only NDVI
-        #self.feature_list = self.data.columns[self.data.columns.str.contains('NDVI')]
+        self.feature_list = self.data.columns[self.data.columns.str.contains('NDVI')]
 
         #preprocess
         self.data = clean_bavarian_labels(self.data)
@@ -64,7 +64,7 @@ class BavariaDataModule(pl.LightningDataModule):
         return DataLoader(self.test, batch_size=self.batch_size, shuffle=False, drop_last=False, num_workers=self.num_workers)
 
 
-class Bavaria1617DataModule(pl.LightningDataModule):
+class Index1617DataModule(pl.LightningDataModule):
     def __init__(self, data_dir: str = "./", batch_size = 32, num_workers = 2):
         super().__init__()
         self.data_dir = data_dir
@@ -73,9 +73,9 @@ class Bavaria1617DataModule(pl.LightningDataModule):
         self.num_workers = num_workers
         self.data = pd.read_excel(self.data_dir)
         #list with selected features "Bands 1-13"
-        self.feature_list = self.data.columns[self.data.columns.str.contains('B')]
+        #self.feature_list = self.data.columns[self.data.columns.str.contains('B')]
         # only NDVI
-        #self.feature_list = self.data.columns[self.data.columns.str.contains('NDVI')]
+        self.feature_list = self.data.columns[self.data.columns.str.contains('NDVI')]
 
         #preprocess
         self.data = clean_bavarian_labels(self.data)
@@ -117,7 +117,7 @@ class Bavaria1617DataModule(pl.LightningDataModule):
     def test_dataloader(self):
         return DataLoader(self.test, batch_size=self.batch_size, shuffle=False, drop_last=False, num_workers=self.num_workers)
 
-class Bavaria1percentDataModule(pl.LightningDataModule):
+class Index1percentDataModule(pl.LightningDataModule):
     def __init__(self, data_dir: str = "./", batch_size = 32, num_workers = 2):
         super().__init__()
         self.data_dir = data_dir
@@ -126,9 +126,9 @@ class Bavaria1percentDataModule(pl.LightningDataModule):
         self.num_workers = num_workers
         self.data = pd.read_excel(self.data_dir)
         #list with selected features "Bands 1-13"
-        self.feature_list = self.data.columns[self.data.columns.str.contains('B')]
+        #self.feature_list = self.data.columns[self.data.columns.str.contains('B')]
         # only NDVI
-        #self.feature_list = self.data.columns[self.data.columns.str.contains('NDVI')]
+        self.feature_list = self.data.columns[self.data.columns.str.contains('NDVI')]
 
         #preprocess
         self.data = clean_bavarian_labels(self.data)
@@ -181,7 +181,7 @@ class Bavaria1percentDataModule(pl.LightningDataModule):
 
 
 
-class DataModule_augmentation(pl.LightningDataModule):
+class IndexModule_augmentation(pl.LightningDataModule):
     def __init__(self, data_dir: str = "./", batch_size = 32, num_workers = 2):
         super().__init__()
         self.data_dir = data_dir
@@ -190,9 +190,9 @@ class DataModule_augmentation(pl.LightningDataModule):
         self.num_workers = num_workers
         self.data = pd.read_excel(self.data_dir)
         #list with selected features "Bands 1-13"
-        self.feature_list = self.data.columns[self.data.columns.str.contains('B')]
+        #self.feature_list = self.data.columns[self.data.columns.str.contains('B')]
         # only NDVI
-        #self.feature_list = self.data.columns[self.data.columns.str.contains('NDVI')]
+        self.feature_list = self.data.columns[self.data.columns.str.contains('NDVI')]
 
         #preprocess
         self.data = clean_bavarian_labels(self.data)

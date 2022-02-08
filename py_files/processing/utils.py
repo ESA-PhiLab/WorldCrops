@@ -52,8 +52,13 @@ def get_other_years(currentyear, yearlist):
         return currentyear
     else:
         yearlist = yearlist.copy()
-        yearlist.remove(currentyear)
-        output = random.sample(yearlist, len(yearlist))
+
+        if len(yearlist) > 2:
+            yearlist.remove(currentyear)
+            output = random.sample(yearlist, len(yearlist))
+        else:
+            output = random.sample(yearlist, len(yearlist))
+
         return output[0],output[1]
 
 def augment_df(_df, years):

@@ -1,6 +1,7 @@
 # %%
 # compare the crop type classification of RF and SimSiam
 import sys
+import os
 sys.path.append('./model')
 sys.path.append('..')
 
@@ -45,20 +46,43 @@ import umap.plot
 from sklearn.metrics import classification_report
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix
+from pytorch_lightning import Trainer, seed_everything
 
 #tsai could be helpful
 #from tsai.all import *
 #computer_setup()
 
 #some definitions for Transformers
-batch_size = 32
+batch_size = 1349
 test_size = 0.25
 SEED = 42
 num_workers=4
 shuffle_dataset =True
-_epochs = 30
+_epochs = 200
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+lr =  0.0016612
 
+#definitions for simsiam
+num_ftrs = 64
+proj_hidden_dim =14
+pred_hidden_dim =14
+out_dim =14
+# scale the learning rate
+#lr = 0.05 * batch_size / 256
+
+def seed_torch(seed=42):
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed) # if you are using multi-GPU.
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+
+seed_torch()
+
+#seed_everything(42, workers=True)
 
 #test function
 def test_epoch(model, criterion, test_dl, device):
@@ -85,18 +109,6 @@ def test_epoch(model, criterion, test_dl, device):
 
 # %%
 #load data for bavaria
-bavaria_reordered = pd.read_excel(
-    '../../data/cropdata/Bavaria/sentinel-2/data2016-2018.xlsx', index_col=0)
-bavaria_test_reordered = pd.read_excel(
-    '../../data/cropdata/Bavaria/sentinel-2/TestData.xlsx', index_col=0)
-
-#delete first two entries with no change
-#bavaria_train = bavaria_train.loc[~((bavaria_train.id == 0)|(bavaria_train.id == 1))]
-#bavaria_reordered = bavaria_reordered.loc[~((bavaria_reordered.index == 0)|(bavaria_reordered.index == 1))]
-
-train_RF = utils.clean_bavarian_labels(bavaria_reordered)
-test_RF = utils.clean_bavarian_labels(bavaria_test_reordered)
-
 dm_bavaria = BavariaDataModule(data_dir = '../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx', batch_size = batch_size, num_workers = num_workers)
 dm_bavaria2 = Bavaria1617DataModule(data_dir = '../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx', batch_size = batch_size, num_workers = num_workers)
 dm_bavaria3 = Bavaria1percentDataModule(data_dir = '../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx', batch_size = batch_size, num_workers = num_workers)
@@ -105,51 +117,44 @@ dm_bavaria3 = Bavaria1percentDataModule(data_dir = '../../data/cropdata/Bavaria/
 # 1. Pre-Train transformer unsupervised mit allen Daten (typische Augmentation + physikalisch)
 # 2. Finetune with data 16/17 + 1 prozent 18
 
-#some definitions for Transformers
-batch_size = 32
-test_size = 0.25
-SEED = 42
-num_workers=4
-shuffle_dataset =True
-_epochs = 30
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-#definitions for simsiam
-num_ftrs = 64
-proj_hidden_dim =14
-pred_hidden_dim =14
-out_dim =14
-# scale the learning rate
-lr = 0.05 * batch_size / 256
 # %%
-#model definition
 transformer = Attention(num_classes = 6, n_head=4, nlayers=3)
-backbone  = nn.Sequential(*list(transformer.children())[:-1])
-backbone
+backbone = nn.Sequential(*list(transformer.children())[-2])
 
-# %%
 dm_augmented = DataModule_augmentation(data_dir = '../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx', batch_size = batch_size, num_workers = num_workers)
 dm_augmented.setup('fit')
-
 model_sim = SimSiam_LM(backbone,num_ftrs=num_ftrs,proj_hidden_dim=proj_hidden_dim,pred_hidden_dim=pred_hidden_dim,out_dim=out_dim,lr=lr)
 trainer = pl.Trainer(gpus=1 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs = _epochs)
 trainer.fit(model_sim, datamodule=dm_augmented)
-trainer.save_checkpoint("../model/pretrained/simsiam.ckpt")
-torch.save(backbone.state_dict(), "../model/pretrained/backbone.ckpt")
-
-# %%
-#pretrained = torch.load("../model/pretrained/backbone.ckpt")
-#pretrained
-#backbone.load_state_dict(torch.load("../model/pretrained/backbone.ckpt"))
+#trainer.save_checkpoint("../model/pretrained/simsiam.ckpt")
+torch.save(backbone, "../model/pretrained/backbone.ckpt")
 
 # %%
 #use pretrained backbone and finetune 
-transfer_model = Attention_Transfer(backbone = backbone, batch_size = batch_size, transfer=True)
+transformer1 = Attention(num_classes = 6, n_head=4, nlayers=3)
+head = nn.Sequential(*list(transformer1.children())[-1])
+transfer_model = Attention_Transfer(num_classes = 6, d_model=num_ftrs, backbone = backbone, head=head, batch_size = batch_size, finetune=True, lr=lr)
 trainer = pl.Trainer( gpus=1 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs= _epochs)
-dm_bavaria2.setup(stage="fit")
-trainer.fit(transfer_model, datamodule = dm_bavaria2)
 
+trainer.fit(transfer_model, datamodule = dm_bavaria)
+trainer.test(transfer_model, datamodule = dm_bavaria)
 # %%
-dm_bavaria2.setup(stage="test")
-trainer.test(transfer_model, datamodule = dm_bavaria2)
+transformer2 = Attention(num_classes = 6, n_head=4, nlayers=3)
+head2 = nn.Sequential(*list(transformer2.children())[-1])
+
+#use pretrained backbone and finetune 
+transfer_model2 = Attention_Transfer(num_classes = 6, d_model=num_ftrs, backbone = backbone, head=head2, batch_size = batch_size, finetune=True, lr=lr)
+trainer = pl.Trainer( gpus=1 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs= _epochs)
+
+trainer.fit(transfer_model2, datamodule = dm_bavaria2)
+trainer.test(transfer_model2, datamodule = dm_bavaria2)
+# %%
+transformer3 = Attention(num_classes = 6, n_head=4, nlayers=3)
+head3 = nn.Sequential(*list(transformer3.children())[-1])
+
+transfer_model3 = Attention_Transfer(num_classes = 6, d_model=num_ftrs, backbone = backbone, head=head3, batch_size = batch_size, finetune=True, lr=lr)
+trainer = pl.Trainer( gpus=1 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs= _epochs)
+
+trainer.fit(transfer_model3, datamodule = dm_bavaria3)
+trainer.test(transfer_model3, datamodule = dm_bavaria3)
 # %%
