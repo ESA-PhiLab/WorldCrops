@@ -1,7 +1,8 @@
 # %%
 # compare the crop type classification of RF and SimSiam
 import sys
-sys.path.append('./model')
+
+sys.path.append('/workspace/WorldCrops/py_files')
 sys.path.append('..')
 
 from model import *
@@ -60,14 +61,14 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 # %%
 #load data for bavaria
 bavaria_train = pd.read_excel(
-    "../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx")
+    "../../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx")
 bavaria_test = pd.read_excel(
-    "../../data/cropdata/Bavaria/sentinel-2/Test_bavaria.xlsx")
+    "../../../data/cropdata/Bavaria/sentinel-2/Test_bavaria.xlsx")
 
 bavaria_reordered = pd.read_excel(
-    '../../data/cropdata/Bavaria/sentinel-2/data2016-2018.xlsx', index_col=0)
+    '../../../data/cropdata/Bavaria/sentinel-2/data2016-2018.xlsx', index_col=0)
 bavaria_test_reordered = pd.read_excel(
-    '../../data/cropdata/Bavaria/sentinel-2/TestData.xlsx', index_col=0)
+    '../../../data/cropdata/Bavaria/sentinel-2/TestData.xlsx', index_col=0)
 
 #delete first two entries with no change
 #bavaria_train = bavaria_train.loc[~((bavaria_train.id == 0)|(bavaria_train.id == 1))]
