@@ -20,6 +20,7 @@ hidden/*
 py_files/experiments/hopfieldlayers
 py_files/experiments/hopfield-layers
 py_files/experiments/datasets/
+py_files/experiments/results/
 py_files/lightning_logs
 py_files/experiments/lightning_logs
 py_files/experiments/cifar-10-batches-py
