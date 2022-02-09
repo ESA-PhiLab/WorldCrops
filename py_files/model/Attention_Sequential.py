@@ -115,8 +115,8 @@ class Attention_LM(pl.LightningModule):
         y_pred = self.forward(x)
         loss = self.ce(y_pred, y)
         self.log('train_loss', loss, prog_bar=True, logger=True)
-        y_true = y.cpu().detach()
-        y_pred = y_pred.argmax(-1).cpu().detach()
+        y_true = y.detach()
+        y_pred = y_pred.argmax(-1).detach()
         return {'loss' : loss, 'y_pred' : y_pred, 'y_true' : y}
 
     def training_epoch_end(self, outputs):
@@ -127,7 +127,7 @@ class Attention_LM(pl.LightningModule):
             y_true_list.append(item['y_true'])
             y_pred_list.append(item['y_pred'])
 
-        acc = accuracy_score(torch.cat(y_true_list),torch.cat(y_pred_list))
+        acc = accuracy_score(torch.cat(y_true_list).cpu(),torch.cat(y_pred_list).cpu())
         #overall accuracy
         self.log('OA',round(acc,2)) 
 
@@ -136,8 +136,8 @@ class Attention_LM(pl.LightningModule):
         y_pred = self.forward(x)
         loss = self.ce(y_pred, y)
         self.log('val_loss', loss)
-        y_true = y.cpu().detach()
-        y_pred = y_pred.argmax(-1).cpu().detach()
+        y_true = y.detach()
+        y_pred = y_pred.argmax(-1).detach()
         return {'loss' : loss, 'y_pred' : y_pred, 'y_true' : y}
 
 
@@ -149,7 +149,7 @@ class Attention_LM(pl.LightningModule):
             y_true_list.append(item['y_true'])
             y_pred_list.append(item['y_pred'])
 
-        acc = accuracy_score(torch.cat(y_true_list),torch.cat(y_pred_list))
+        acc = accuracy_score(torch.cat(y_true_list).cpu(),torch.cat(y_pred_list).cpu())
         #overall accuracy
         self.log('OA',round(acc,2))
 
@@ -163,8 +163,8 @@ class Attention_LM(pl.LightningModule):
         loss = self.ce(y_pred, y)
         self.log('test_results', {'test_loss' : loss},on_step=True,prog_bar=True)
 
-        y_true = y.cpu().detach()
-        y_pred = y_pred.argmax(-1).cpu().detach()
+        y_true = y.detach()
+        y_pred = y_pred.argmax(-1).detach()
         return {'loss' : loss, 'y_pred' : y_pred, 'y_true' : y}
 
     def test_step_end(self, outputs):
@@ -179,7 +179,7 @@ class Attention_LM(pl.LightningModule):
             y_true_list.append(item['y_true'])
             y_pred_list.append(item['y_pred'])
 
-        acc = accuracy_score(torch.cat(y_true_list),torch.cat(y_pred_list))
+        acc = accuracy_score(torch.cat(y_true_list).cpu(),torch.cat(y_pred_list).cpu())
         #Overall accuracy
         self.log('OA',round(acc,2))
 
@@ -235,8 +235,8 @@ class Attention_Transfer(pl.LightningModule):
         y_pred = self.forward(x)
         loss = self.ce(y_pred, y)
         self.log('train_loss', loss, prog_bar=True, logger=True)
-        y_true = y.cpu().detach()
-        y_pred = y_pred.argmax(-1).cpu().detach()
+        y_true = y.detach()
+        y_pred = y_pred.argmax(-1).detach()
         return {'loss' : loss, 'y_pred' : y_pred, 'y_true' : y}
 
     def training_epoch_end(self, outputs):
@@ -247,7 +247,7 @@ class Attention_Transfer(pl.LightningModule):
             y_true_list.append(item['y_true'])
             y_pred_list.append(item['y_pred'])
 
-        acc = accuracy_score(torch.cat(y_true_list),torch.cat(y_pred_list))
+        acc = accuracy_score(torch.cat(y_true_list).cpu(),torch.cat(y_pred_list).cpu())
         #overall accuracy
         self.log('OA',round(acc,2)) 
 
@@ -256,8 +256,8 @@ class Attention_Transfer(pl.LightningModule):
         y_pred = self.forward(x)
         loss = self.ce(y_pred, y)
         self.log('val_loss', loss)
-        y_true = y.cpu().detach()
-        y_pred = y_pred.argmax(-1).cpu().detach()
+        y_true = y.detach()
+        y_pred = y_pred.argmax(-1).detach()
         return {'loss' : loss, 'y_pred' : y_pred, 'y_true' : y}
 
 
@@ -269,7 +269,7 @@ class Attention_Transfer(pl.LightningModule):
             y_true_list.append(item['y_true'])
             y_pred_list.append(item['y_pred'])
 
-        acc = accuracy_score(torch.cat(y_true_list),torch.cat(y_pred_list))
+        acc = accuracy_score(torch.cat(y_true_list).cpu(),torch.cat(y_pred_list).cpu())
         #overall accuracy
         self.log('OA',round(acc,2))
 
@@ -287,8 +287,8 @@ class Attention_Transfer(pl.LightningModule):
         loss = self.ce(y_pred, y)
         self.log('test_results', {'test_loss' : loss},on_step=True,prog_bar=True)
 
-        y_true = y.cpu().detach()
-        y_pred = y_pred.argmax(-1).cpu().detach()
+        y_true = y.detach()
+        y_pred = y_pred.argmax(-1).detach()
         return {'loss' : loss, 'y_pred' : y_pred, 'y_true' : y}
 
     def test_step_end(self, outputs):
@@ -303,7 +303,7 @@ class Attention_Transfer(pl.LightningModule):
             y_true_list.append(item['y_true'])
             y_pred_list.append(item['y_pred'])
 
-        acc = accuracy_score(torch.cat(y_true_list),torch.cat(y_pred_list))
+        acc = accuracy_score(torch.cat(y_true_list).cpu(),torch.cat(y_pred_list).cpu())
         #Overall accuracy
         self.log('OA',round(acc,2))
 

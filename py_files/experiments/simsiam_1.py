@@ -40,8 +40,8 @@ from sklearn.model_selection import cross_val_score
 import sklearn.datasets
 import pandas as pd
 import numpy as np
-import umap
-import umap.plot
+# import umap
+# import umap.plot
 
 from sklearn.metrics import classification_report
 from sklearn.metrics import accuracy_score
@@ -55,10 +55,10 @@ import copy
 #some definitions for Transformers
 batch_size = 1349
 test_size = 0.25
-SEED = 42
+# SEED = 42
 num_workers=4
 shuffle_dataset =True
-_epochs = 200
+_epochs = 20
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 lr =  0.0016612
 
@@ -70,17 +70,17 @@ out_dim =14
 # scale the learning rate
 #lr = 0.05 * batch_size / 256
 
-def seed_torch(seed=42):
-    random.seed(seed)
-    os.environ['PYTHONHASHSEED'] = str(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed) # if you are using multi-GPU.
-    torch.backends.cudnn.benchmark = False
-    torch.backends.cudnn.deterministic = True
+# def seed_torch(seed=42):
+#     random.seed(seed)
+#     os.environ['PYTHONHASHSEED'] = str(seed)
+#     np.random.seed(seed)
+#     torch.manual_seed(seed)
+#     torch.cuda.manual_seed(seed)
+#     torch.cuda.manual_seed_all(seed) # if you are using multi-GPU.
+#     torch.backends.cudnn.benchmark = False
+#     torch.backends.cudnn.deterministic = True
 
-seed_torch()
+# seed_torch()
 
 #seed_everything(42, workers=True)
 
@@ -96,8 +96,8 @@ def test_epoch(model, criterion, test_dl, device):
         with tqdm.tqdm(enumerate(test_dl), total=len(test_dl), leave=True) as iterator:
             for idx, batch in iterator:
                 x, y_true = batch
-                logprobabilities = model.forward(x.to(device))
-                loss = criterion(logprobabilities, y_true.to(device))
+                logprobabilities = model.forward(x)
+                loss = criterion(logprobabilities, y_true)
                 iterator.set_description(f"test loss={loss:.2f}")
                 losses.append(loss)
                 y_true_list.append(y_true)
@@ -117,15 +117,20 @@ dm_bavaria3 = Bavaria1percentDataModule(data_dir = '../../data/cropdata/Bavaria/
 # 1. Pre-Train transformer unsupervised mit allen Daten (typische Augmentation + physikalisch)
 # 2. Finetune with data 16/17 + 1 prozent 18
 
-# %%
+
+no_gpus = 4
+
 transformer = Attention(num_classes = 6, n_head=4, nlayers=3)
 backbone = nn.Sequential(*list(transformer.children())[-2])
-
+# # %%
 dm_augmented = DataModule_augmentation(data_dir = '../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx', batch_size = batch_size, num_workers = num_workers)
 dm_augmented.setup('fit')
 model_sim = SimSiam_LM(backbone,num_ftrs=num_ftrs,proj_hidden_dim=proj_hidden_dim,pred_hidden_dim=pred_hidden_dim,out_dim=out_dim,lr=lr)
-trainer = pl.Trainer(gpus=1 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs = _epochs)
+trainer = pl.Trainer(gpus=no_gpus, strategy='ddp', deterministic=True, max_epochs = _epochs)
+# trainer = pl.Trainer(gpus=4 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs = _epochs)
+#%%
 trainer.fit(model_sim, datamodule=dm_augmented)
+#%%
 #trainer.save_checkpoint("../model/pretrained/simsiam.ckpt")
 torch.save(backbone, "../model/pretrained/backbone.ckpt")
 
@@ -143,6 +148,7 @@ transfer_model = Attention_Transfer(num_classes = 6, d_model=num_ftrs, backbone 
 trainer = pl.Trainer( gpus=1 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs= _epochs)
 
 trainer.fit(transfer_model, datamodule = dm_bavaria)
+# exit()
 trainer.test(transfer_model, datamodule = dm_bavaria)
 # %%
 transformer2 = Attention(num_classes = 6, n_head=4, nlayers=3)
@@ -164,3 +170,5 @@ trainer = pl.Trainer( gpus=1 if str(device).startswith("cuda") else 0, determini
 trainer.fit(transfer_model3, datamodule = dm_bavaria3)
 trainer.test(transfer_model3, datamodule = dm_bavaria3)
 # %%
+end = time.perf_counter()
+print((end-start)/60)
