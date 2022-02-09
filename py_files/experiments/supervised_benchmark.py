@@ -89,21 +89,7 @@ test_RF = test_RF[test_RF.NC != 6]
 train = utils.rewrite_id_CustomDataSet(train)
 test = utils.rewrite_id_CustomDataSet(test)
 
-# %%
-feature_list = train.columns[train.columns.str.contains('NDVI')]
-id=1
-print(train[(train.Year == 2016)&(train.NC==id)][feature_list].mean())
-print(train[(train.Year == 2017)&(train.NC==id)][feature_list].mean())
-print(train[(train.Year == 2018)&(train.NC==id)][feature_list].mean())
-print("######")
-print(train[(train.Year == 2016)&(train.NC==id)][feature_list].std())
-print(train[(train.Year == 2017)&(train.NC==id)][feature_list].std())
-print(train[(train.Year == 2018)&(train.NC==id)][feature_list].std())
-print("######")
-print(train[(train.Year == 2016)][feature_list].mean())
-print(train[(train.Year == 2017)][feature_list].mean())
-print(train[(train.Year == 2018)][feature_list].mean())
-# %%
+
 
 # %%
 #split data to 1617 and 2018 
