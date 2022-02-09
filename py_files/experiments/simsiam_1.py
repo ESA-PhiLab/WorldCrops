@@ -47,7 +47,7 @@ from sklearn.metrics import classification_report
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix
 from pytorch_lightning import Trainer, seed_everything
-
+import copy
 #tsai could be helpful
 #from tsai.all import *
 #computer_setup()
@@ -129,11 +129,17 @@ trainer.fit(model_sim, datamodule=dm_augmented)
 #trainer.save_checkpoint("../model/pretrained/simsiam.ckpt")
 torch.save(backbone, "../model/pretrained/backbone.ckpt")
 
+#copy pretrained backbone for experiments
+backbone_copy1 = copy.deepcopy(backbone)
+backbone_copy2 = copy.deepcopy(backbone)
+backbone_copy3 = copy.deepcopy(backbone)
+
 # %%
 #use pretrained backbone and finetune 
 transformer1 = Attention(num_classes = 6, n_head=4, nlayers=3)
 head = nn.Sequential(*list(transformer1.children())[-1])
-transfer_model = Attention_Transfer(num_classes = 6, d_model=num_ftrs, backbone = backbone, head=head, batch_size = batch_size, finetune=True, lr=lr)
+
+transfer_model = Attention_Transfer(num_classes = 6, d_model=num_ftrs, backbone = backbone_copy1, head=head, batch_size = batch_size, finetune=True, lr=lr)
 trainer = pl.Trainer( gpus=1 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs= _epochs)
 
 trainer.fit(transfer_model, datamodule = dm_bavaria)
@@ -143,7 +149,7 @@ transformer2 = Attention(num_classes = 6, n_head=4, nlayers=3)
 head2 = nn.Sequential(*list(transformer2.children())[-1])
 
 #use pretrained backbone and finetune 
-transfer_model2 = Attention_Transfer(num_classes = 6, d_model=num_ftrs, backbone = backbone, head=head2, batch_size = batch_size, finetune=True, lr=lr)
+transfer_model2 = Attention_Transfer(num_classes = 6, d_model=num_ftrs, backbone = backbone_copy2, head=head2, batch_size = batch_size, finetune=True, lr=lr)
 trainer = pl.Trainer( gpus=1 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs= _epochs)
 
 trainer.fit(transfer_model2, datamodule = dm_bavaria2)
@@ -152,7 +158,7 @@ trainer.test(transfer_model2, datamodule = dm_bavaria2)
 transformer3 = Attention(num_classes = 6, n_head=4, nlayers=3)
 head3 = nn.Sequential(*list(transformer3.children())[-1])
 
-transfer_model3 = Attention_Transfer(num_classes = 6, d_model=num_ftrs, backbone = backbone, head=head3, batch_size = batch_size, finetune=True, lr=lr)
+transfer_model3 = Attention_Transfer(num_classes = 6, d_model=num_ftrs, backbone = backbone_copy3, head=head3, batch_size = batch_size, finetune=True, lr=lr)
 trainer = pl.Trainer( gpus=1 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs= _epochs)
 
 trainer.fit(transfer_model3, datamodule = dm_bavaria3)
