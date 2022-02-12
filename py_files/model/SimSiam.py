@@ -89,7 +89,7 @@ class SimSiam_LM(pl.LightningModule):
         (z0, p0),(z1, p1) = self.forward(x0,x1)
 
         loss = 0.5 * (self.ce(z0, p1) + self.ce(z1, p0))
-        self.log('train_loss_ssl', loss)
+        self.log('train_loss_ssl', abs(loss))
         #output = p0.detach()
         return {'loss':loss}
 
@@ -115,7 +115,7 @@ class SimSiam_LM(pl.LightningModule):
 
 
     def validation_step(self, val_batch, batch_idx):
-        (x0, x1), _, _ = batch
+        (x0, x1), _, _ = val_batch
  
         (z0, p0),(z1, p1) = self.forward(x0,x1)
         loss = 0.5 * (self.ce(z0, p1) + self.ce(z1, p0))

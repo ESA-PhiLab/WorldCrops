@@ -23,7 +23,7 @@ class OwnAugmentation():
 my_augmenter = (
      #TimeWarp() * 5  # random time warping 5 times in parallel
      #+ Quantize(n_levels=[10, 20, 30])  # random quantize to 10-, 20-, or 30- level sets
-     #Drift(max_drift=(0.1, 0.5)) @ 0.8  # with 80% probability, random drift the signal up to 10% - 50%
+     Drift(max_drift=(0.1, 0.5)),   # with 80% probability, random drift the signal up to 10% - 50%
      AddNoise(scale=0.1)
      #+ Reverse() @ 0.5  # with 50% probability, reverse the sequence 
 )
@@ -231,3 +231,80 @@ class TSDataSet(Dataset):
         return torch for y
         '''
         return torch.tensor(y, dtype=torch.long)
+
+
+class Test2016(Dataset):
+    '''
+    :param data: dataset of type pandas.DataFrame
+    :param target_col: targeted column name
+    :param feature_list: list with target features
+    '''
+
+    def __init__(self, data, feature_list = [], target_col = 'NC', field_id = 'id', time_steps = 14, callback = None, size = 0):
+        self.df = data
+        self.target_col = target_col
+        self.feature_list = feature_list
+        self.time_steps = time_steps
+        self.size = size
+
+        if self.size == 0:
+            print('Define data size')
+            return
+        if callback != None:
+            self.df = callback(self.df)
+
+        #numpy with augmented data
+        #size x 2 x T x D
+        self.augmented = np.zeros((self.size, 2, self.time_steps, len(self.feature_list)))
+        self.sampleData()
+
+
+    def sampleData(self):
+        try:
+            for idx in range(self.size):
+                ts1, ts2 = self.get_X1_X2(self.df, self.feature_list)
+                self.augmented[idx,0] = ts1
+                self.augmented[idx,1] = ts2
+        except:
+            print('Error in data generation:', ts1.shape, ts2.shape, idx)
+
+        
+    def get_X1_X2(self, data, features):
+        '''Returns two different timeseries for the same crop
+        '''
+        random_field = random.choice(data.id.unique())
+        random_crop = random.choice(data.NC.unique())
+        #choose random crop and then two random fields from this crop
+        field_id1 = random.choice(data[data.NC == random_crop].id.unique())
+        field_id2 = random.choice(data[data.NC == random_crop].id.unique())
+        return data[data.id == field_id1][features].to_numpy(), data[data.id == field_id2][features].to_numpy()
+
+    def __len__(self):
+        return self.size
+
+    def __getitem__(self, idx):
+
+        x1 = self.augmented[idx,0]
+        x2 = self.augmented[idx,1]
+
+        #augmentation based on different years
+        aug_x1 = self.x2torch(x1)
+        aug_x2 = self.x2torch(x2)
+
+        #None torch values for x,y
+        x = torch.from_numpy(np.array(0)).type(torch.FloatTensor)
+        y = torch.from_numpy(np.array(0)).type(torch.FloatTensor)
+
+        return (aug_x1, aug_x2), x, y
+
+    def x2torch(self, x):
+        '''
+        return torch for x
+        '''
+        #nb_obs, nb_features = self.x.shape
+        return torch.from_numpy(x).type(torch.FloatTensor)
+
+
+            
+        
+    

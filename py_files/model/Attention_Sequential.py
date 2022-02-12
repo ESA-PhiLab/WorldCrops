@@ -161,7 +161,7 @@ class Attention_LM(pl.LightningModule):
         x, y = test_batch
         y_pred = self.forward(x)
         loss = self.ce(y_pred, y)
-        self.log('test_results', {'test_loss' : loss},on_step=True,prog_bar=True)
+        self.log('test_results', loss,on_step=True,prog_bar=True)
 
         y_true = y.detach()
         y_pred = y_pred.argmax(-1).detach()
