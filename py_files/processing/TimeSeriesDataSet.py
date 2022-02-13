@@ -19,7 +19,7 @@ class OwnAugmentation():
       return np.multiply(x, factor[:,:])
 
 class AugmentationSampling():
-    '''Obtain mean and std per timestepd from dataset and draw augmentation from that.
+    '''Obtain mean and std per timestep from dataset and draw augmentation from that.
        REQUIRES: data[type][channel,timestep,samples]
     '''
     def __init__(self, data) -> None:
