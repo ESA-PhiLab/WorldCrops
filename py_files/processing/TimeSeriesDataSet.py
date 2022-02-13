@@ -18,6 +18,39 @@ class OwnAugmentation():
       factor = np.random.normal(loc=1., scale=sigma, size=(x.shape[0],x.shape[1]))
       return np.multiply(x, factor[:,:])
 
+class OneShotResampling():
+    '''Obtain mean and std per timestepd from dataset and draw augmentation from that.
+       REQUIRES: data[type][channel,timestep,samples]
+    '''
+    def __init__(self, data) -> None:
+        self.channels = data.shape[0]
+        self.types = data.shape[1]
+        self.time_steps = data.shape[2]
+        self.mu = torch.zeros((self.types, self.channels, self.time_steps))
+        self.std = torch.zeros((self.types, self.channels, self.time_steps))
+        for f in range(self.types):
+            for c in range(self.channels):
+                for t in range(self.time_steps):
+                    self.mu[f,c,t] = torch.mean(torch.tensor(data[f][c,:,t]))
+                    self.std[f,c,t] = torch.std(torch.tensor(data[f][c,:,t]))
+
+    def create_augmentation(self, type, n_samples):
+        samples = torch.zeros((n_samples, self.channels,self.time_steps))
+        for n in range(n_samples):
+            for c in range(self.channels):
+                for t in range(self.time_steps):
+                    samples[n,c,t] = torch.normal(mean=self.mu[type,c,t], std=self.std[type,c,t])
+        return samples
+
+
+class Bootstrapping():
+    '''Draw sample and augmentation from original dataset.'''
+    pass
+
+
+class BootstrapResampling():
+    '''? Obtain mean and std per timestepd based on bootstrapping and draw augmentation from that.'''
+    pass
 
 
 my_augmenter = (
