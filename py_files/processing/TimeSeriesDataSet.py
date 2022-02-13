@@ -18,7 +18,7 @@ class OwnAugmentation():
       factor = np.random.normal(loc=1., scale=sigma, size=(x.shape[0],x.shape[1]))
       return np.multiply(x, factor[:,:])
 
-class OneShotResampling():
+class AugmentationSampling():
     '''Obtain mean and std per timestepd from dataset and draw augmentation from that.
        REQUIRES: data[type][channel,timestep,samples]
     '''
