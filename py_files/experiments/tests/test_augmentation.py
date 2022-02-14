@@ -2,7 +2,7 @@
 # compare the crop type classification of RF and SimSiam
 import sys
 
-sys.path.append('/workspace/WorldCrops/py_files')
+sys.path.append('/home/daniel/QM-Encoder/worldcrops/WorldCrops/WorldCrops/py_files')
 sys.path.append('..')
 
 from model import *
@@ -40,8 +40,8 @@ from sklearn.model_selection import cross_val_score
 import sklearn.datasets
 import pandas as pd
 import numpy as np
-import umap
-import umap.plot
+# import umap
+# import umap.plot
 
 from torch.utils.data.sampler import SubsetRandomSampler
 
@@ -89,9 +89,151 @@ test_RF = test_RF[test_RF.NC != 6]
 
 train = utils.rewrite_id_CustomDataSet(train)
 test = utils.rewrite_id_CustomDataSet(test)
+#%%
+feature_list = train.columns[train.columns.str.contains('B')]
+# len(train.id.unique())
+#%%
+print(train.shape)
+trainx = train[feature_list].values
+df = trainx.reshape(1799,14, len(feature_list))
+#%%
+
+class AugmentationSampling():
+    '''Obtain mean and std for each timestep from dataset and draw augmentation from that.
+       REQUIRES: data[type,channel,timestep,samples]
+    '''
+    def __init__(self, data) -> None:
+        self.types = data.shape[0]
+        self.channels = data.shape[1]
+        self.time_steps = data.shape[2]
+        self.mu = torch.zeros((self.types, self.channels, self.time_steps))
+        self.std = torch.zeros((self.types, self.channels, self.time_steps))
+        for f in range(self.types):
+            for c in range(self.channels):
+                for t in range(self.time_steps):
+                    self.mu[f,c,t] = torch.mean(torch.tensor(data[f,c,t,:]))
+                    self.std[f,c,t] = torch.std(torch.tensor(data[f,c,t,:]))
+
+    def create_augmentation(self, type, n_samples):
+        samples = torch.zeros((n_samples, self.channels,self.time_steps))
+        for n in range(n_samples):
+            for c in range(self.channels):
+                for t in range(self.time_steps):
+                    samples[n,c,t] = torch.normal(mean=self.mu[type,c,t], std=self.std[type,c,t])
+        return samples
+
+
+class TSDataSet(Dataset):
+    '''
+    :param data: dataset of type pandas.DataFrame
+    :param target_col: targeted column name
+    :param field_id: name of column with field ids
+    :param feature_list: list with target features
+    :param callback: preprocessing of dataframe
+    '''
+    def __init__(self, data, feature_list = [], target_col = 'NC', field_id = 'id', time_steps = 14, callback = None):
+        self.df = data
+        self.target_col = target_col
+        self.feature_list = feature_list
+        self.time_steps = time_steps
+
+        if callback != None:
+            self.df = callback(self.df)
+
+        self._fields_amount = len(self.df[field_id].unique())
+
+        #get numpy
+        self.y = self.df[self.target_col].values
+        self.field_ids = self.df[field_id].values
+        self.df = self.df[self.feature_list].values
+
+        if self.y.size == 0:
+            print('Target column not in dataframe')
+            return
+        if self.field_ids.size == 0:
+            print('Field id not defined')
+            return
+        
+        #reshape to 3D
+        #field x T x D
+        self.df = self.df.reshape(int(self._fields_amount),self.time_steps, len(self.feature_list))
+        self.y = self.y.reshape(int(self._fields_amount),1, self.time_steps)
+        self.field_ids = self.field_ids.reshape(int(self._fields_amount),1, self.time_steps)
+
+        # ::: Statistics for augmentation sampling
+        temp_data = np.array(data)
+        n_features = len(data.NC.unique())
+        n_channels = 13
+        n_tsteps = 14
+        n_samples = 300
+        entries = data.shape[0]
+        # : Required data format
+        data_sorted = np.zeros((n_features,n_channels,n_tsteps,n_samples))
+        for m in range(n_features):
+            cnt = 0
+            fcnt = 0
+            for n in range(entries):
+                if(temp_data[n,3]==m):
+                    if (cnt==14):
+                        fcnt += 1
+                        cnt = 0
+                    data_sorted[m,:n_channels,cnt,fcnt] = temp_data[n,4:17] 
+                    cnt += 1
+
+        # :: Initialize statistical augmentation object
+        self.aug_sample = AugmentationSampling(data_sorted)
+        # : Usage: self.aug_sample.create_augmentation([type], [n_samples])
+        # : Example creates 2 samples for crop type 0
+        # aug_samples = self.aug_sample.create_augmentation(0,2)
+
+        # import matplotlib.pyplot as plot
+        # fig, ax = plt.subplots(figsize=(8,5))
+        # for n in range(6):
+        #     ax.plot(ac.mu[n,0,:])
+        # fig, ax = plt.subplots(figsize=(8,5))
+        # for n in range(6):
+        #     ax.plot(ac.std[n,0,:])
+
+
+    def __len__(self):
+        return self.df.shape[0]
+
+    def __getitem__(self, idx):
+        x = self.df[idx,:,:]
+        y = self.y[idx,0,0]
+        field_id = self.field_ids[idx,0,0]
+
+        torchx = self.x2torch(x)
+        torchy = self.y2torch(y)
+        return torchx, torchy #, torch.tensor(field_id, dtype=torch.long)
+        
+    def x2torch(self, x):
+        '''
+        return torch for x
+        '''
+        #nb_obs, nb_features = self.x.shape
+        return torch.from_numpy(x).type(torch.FloatTensor)
+
+    def y2torch(self, y):
+        '''
+        return torch for y
+        '''
+        return torch.tensor(y, dtype=torch.long)
+
+# print(train)
+cc = TSDataSet(train, feature_list.tolist())
+
+
+
+
+#%%
+# print(df.shape)
+print(df[:10,0,0])
+# print(df)
+# y = y.reshape(int(_fields_amount),1, 14)
+# field_ids = field_ids.reshape(int(_fields_amount),1, time_steps)
 
 # %%
-feature_list = train.columns[train.columns.str.contains('B')]
 id=1
 print(train[(train.Year == 2016)&(train.NC==id)][feature_list].mean())
 print(train[(train.Year == 2017)&(train.NC==id)][feature_list].mean())

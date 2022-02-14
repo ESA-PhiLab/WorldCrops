@@ -1,4 +1,4 @@
-
+#%%
 import numpy as np
 from tqdm import tqdm
 import torch
@@ -20,7 +20,7 @@ class OwnAugmentation():
 
 class AugmentationSampling():
     '''Obtain mean and std for each timestep from dataset and draw augmentation from that.
-       REQUIRES: data[type][channel,timestep,samples]
+       REQUIRES: data[type,channel,timestep,samples]
     '''
     def __init__(self, data) -> None:
         self.channels = data.shape[0]
