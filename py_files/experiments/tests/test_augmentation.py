@@ -2,7 +2,8 @@
 # compare the crop type classification of RF and SimSiam
 import sys
 
-sys.path.append('/home/daniel/QM-Encoder/worldcrops/WorldCrops/WorldCrops/py_files')
+#sys.path.append('/home/daniel/QM-Encoder/worldcrops/WorldCrops/WorldCrops/py_files')
+sys.path.append('/workspace/WorldCrops/py_files')
 sys.path.append('..')
 
 from model import *
@@ -131,22 +132,28 @@ class TSDataSet(Dataset):
     :param feature_list: list with target features
     :param callback: preprocessing of dataframe
     '''
-    def __init__(self, data, feature_list = [], target_col = 'NC', field_id = 'id', time_steps = 14, callback = None):
+    def __init__(self, data, factor=1, feature_list = [], target_col = 'NC', field_id = 'id', time_steps = 14, callback = None):
         self.df = data
+        self.factor = factor
+        self.df = self.reproduce(data, self.factor)
         self.target_col = target_col
         self.feature_list = feature_list
         self.time_steps = time_steps
+        
 
         if callback != None:
             self.df = callback(self.df)
 
-        self._fields_amount = len(self.df[field_id].unique())
+        self._fields_amount = len(self.df[field_id].unique())*self.factor
 
         #get numpy
         self.y = self.df[self.target_col].values
         self.field_ids = self.df[field_id].values
         self.df = self.df[self.feature_list].values
 
+        if self.factor < 1:
+            print('Factor needs to be at least 1')
+            return
         if self.y.size == 0:
             print('Target column not in dataframe')
             return
@@ -194,6 +201,13 @@ class TSDataSet(Dataset):
         # for n in range(6):
         #     ax.plot(ac.std[n,0,:])
 
+    def reproduce(self, df, _size):
+        ''' reproduce the orginal df with factor X times'''
+        newdf = pd.DataFrame()
+        for idx in range(_size):
+            newdf = pd.concat([newdf, df.copy()], axis=0)
+            #print(len(newdf),_size)
+        return newdf
 
     def __len__(self):
         return self.df.shape[0]
@@ -203,9 +217,13 @@ class TSDataSet(Dataset):
         y = self.y[idx,0,0]
         field_id = self.field_ids[idx,0,0]
 
+        aug_samples = self.aug_sample.create_augmentation(y.item(),2)
+        aug_x1 = aug_samples[0].permute(1,0)
+        aug_x2 = aug_samples[1].permute(1,0)
+
         torchx = self.x2torch(x)
         torchy = self.y2torch(y)
-        return torchx, torchy #, torch.tensor(field_id, dtype=torch.long)
+        return aug_x1, aug_x2, torchx, torchy #, torch.tensor(field_id, dtype=torch.long)
         
     def x2torch(self, x):
         '''
@@ -220,11 +238,20 @@ class TSDataSet(Dataset):
         '''
         return torch.tensor(y, dtype=torch.long)
 
+#%%
 # print(train)
-cc = TSDataSet(train, feature_list.tolist())
+cc = TSDataSet(train, factor=2, feature_list=feature_list.tolist())
 
+#%%
+train
+#%%
+#plt.plot(cc[0][0].numpy())
+plt.plot(cc[49][1].numpy())
 
-
+#%%
+train.columns
+#%%
+train[train.id==0]['NDVI'].plot()
 
 #%%
 # print(df.shape)
