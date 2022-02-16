@@ -18,21 +18,30 @@ class OwnAugmentation():
       factor = np.random.normal(loc=1., scale=sigma, size=(x.shape[0],x.shape[1]))
       return np.multiply(x, factor[:,:])
 
+
+my_augmenter = (
+     #TimeWarp() * 5  # random time warping 5 times in parallel
+     #+ Quantize(n_levels=[10, 20, 30])  # random quantize to 10-, 20-, or 30- level sets
+     Drift(max_drift=(0.1, 0.5)),   # with 80% probability, random drift the signal up to 10% - 50%
+     AddNoise(scale=0.1)
+     #+ Reverse() @ 0.5  # with 50% probability, reverse the sequence 
+)
+
 class AugmentationSampling():
     '''Obtain mean and std for each timestep from dataset and draw augmentation from that.
        REQUIRES: data[type,channel,timestep,samples]
     '''
     def __init__(self, data) -> None:
-        self.channels = data.shape[0]
-        self.types = data.shape[1]
+        self.types = data.shape[0]
+        self.channels = data.shape[1]
         self.time_steps = data.shape[2]
         self.mu = torch.zeros((self.types, self.channels, self.time_steps))
         self.std = torch.zeros((self.types, self.channels, self.time_steps))
         for f in range(self.types):
             for c in range(self.channels):
                 for t in range(self.time_steps):
-                    self.mu[f,c,t] = torch.mean(torch.tensor(data[f][c,:,t]))
-                    self.std[f,c,t] = torch.std(torch.tensor(data[f][c,:,t]))
+                    self.mu[f,c,t] = torch.mean(torch.tensor(data[f,c,t,:]))
+                    self.std[f,c,t] = torch.std(torch.tensor(data[f,c,t,:]))
 
     def create_augmentation(self, type, n_samples):
         samples = torch.zeros((n_samples, self.channels,self.time_steps))
@@ -43,23 +52,121 @@ class AugmentationSampling():
         return samples
 
 
-class Bootstrapping():
-    '''Draw sample and augmentation from original dataset.'''
-    pass
+class TSAugmented(Dataset):
+    '''
+    :param data: dataset of type pandas.DataFrame
+    :param target_col: targeted column name
+    :param field_id: name of column with field ids
+    :param feature_list: list with target features
+    :param callback: preprocessing of dataframe
+    '''
+    def __init__(self, data, factor=1, feature_list = [], target_col = 'NC', field_id = 'id', time_steps = 14, callback = None):
+        self.df = data
+        self.factor = factor
+        self.df = self.reproduce(data, self.factor)
+        self.target_col = target_col
+        self.feature_list = feature_list
+        self.time_steps = time_steps
+        
+
+        if callback != None:
+            self.df = callback(self.df)
+
+        self._fields_amount = len(self.df[field_id].unique())*self.factor
+
+        #get numpy
+        self.y = self.df[self.target_col].values
+        self.field_ids = self.df[field_id].values
+        self.df = self.df[self.feature_list].values
+
+        if self.factor < 1:
+            print('Factor needs to be at least 1')
+            return
+        if self.y.size == 0:
+            print('Target column not in dataframe')
+            return
+        if self.field_ids.size == 0:
+            print('Field id not defined')
+            return
+        
+        #reshape to 3D
+        #field x T x D
+        self.df = self.df.reshape(int(self._fields_amount),self.time_steps, len(self.feature_list))
+        self.y = self.y.reshape(int(self._fields_amount),1, self.time_steps)
+        self.field_ids = self.field_ids.reshape(int(self._fields_amount),1, self.time_steps)
+
+        # ::: Statistics for augmentation sampling
+        temp_data = np.array(data)
+        n_features = len(data.NC.unique())
+        n_channels = 13
+        n_tsteps = 14
+        n_samples = 300
+        entries = data.shape[0]
+        # : Required data format
+        data_sorted = np.zeros((n_features,n_channels,n_tsteps,n_samples))
+        for m in range(n_features):
+            cnt = 0
+            fcnt = 0
+            for n in range(entries):
+                if(temp_data[n,3]==m):
+                    if (cnt==14):
+                        fcnt += 1
+                        cnt = 0
+                    data_sorted[m,:n_channels,cnt,fcnt] = temp_data[n,4:17] 
+                    cnt += 1
+
+        # :: Initialize statistical augmentation object
+        self.aug_sample = AugmentationSampling(data_sorted)
+        # : Usage: self.aug_sample.create_augmentation([type], [n_samples])
+        # : Example creates 2 samples for crop type 0
+        # aug_samples = self.aug_sample.create_augmentation(0,2)
+
+        # import matplotlib.pyplot as plot
+        # fig, ax = plt.subplots(figsize=(8,5))
+        # for n in range(6):
+        #     ax.plot(ac.mu[n,0,:])
+        # fig, ax = plt.subplots(figsize=(8,5))
+        # for n in range(6):
+        #     ax.plot(ac.std[n,0,:])
+
+    def reproduce(self, df, _size):
+        ''' reproduce the orginal df with factor X times'''
+        newdf = pd.DataFrame()
+        for idx in range(_size):
+            newdf = pd.concat([newdf, df.copy()], axis=0)
+            #print(len(newdf),_size)
+        return newdf
+
+    def __len__(self):
+        return self.df.shape[0]
+
+    def __getitem__(self, idx):
+        x = self.df[idx,:,:]
+        y = self.y[idx,0,0]
+        field_id = self.field_ids[idx,0,0]
+
+        aug_samples = self.aug_sample.create_augmentation(y.item(),2)
+        aug_x1 = aug_samples[0].permute(1,0)
+        aug_x2 = aug_samples[1].permute(1,0)
+
+        torchx = self.x2torch(x)
+        torchy = self.y2torch(y)
+        return (aug_x1, aug_x2), torchx, torchy #, torch.tensor(field_id, dtype=torch.long)
+        
+    def x2torch(self, x):
+        '''
+        return torch for x
+        '''
+        #nb_obs, nb_features = self.x.shape
+        return torch.from_numpy(x).type(torch.FloatTensor)
+
+    def y2torch(self, y):
+        '''
+        return torch for y
+        '''
+        return torch.tensor(y, dtype=torch.long)
 
 
-class BootstrapResampling():
-    '''? Obtain mean and std per timestepd based on bootstrapping and draw augmentation from that.'''
-    pass
-
-
-my_augmenter = (
-     #TimeWarp() * 5  # random time warping 5 times in parallel
-     #+ Quantize(n_levels=[10, 20, 30])  # random quantize to 10-, 20-, or 30- level sets
-     Drift(max_drift=(0.1, 0.5)),   # with 80% probability, random drift the signal up to 10% - 50%
-     AddNoise(scale=0.1)
-     #+ Reverse() @ 0.5  # with 50% probability, reverse the sequence 
-)
 
 
 class TimeSeriesAugmented(Dataset):
