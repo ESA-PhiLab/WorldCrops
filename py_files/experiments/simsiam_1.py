@@ -58,7 +58,7 @@ test_size = 0.25
 # SEED = 42
 num_workers=4
 shuffle_dataset =True
-_epochs = 100
+_epochs = 1000
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 lr =  0.0016612
 

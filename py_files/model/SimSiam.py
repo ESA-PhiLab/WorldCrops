@@ -89,7 +89,7 @@ class SimSiam_LM(pl.LightningModule):
         (z0, p0),(z1, p1) = self.forward(x0,x1)
 
         loss = 0.5 * (self.ce(z0, p1) + self.ce(z1, p0))
-        self.log('train_loss_ssl', abs(loss))
+        self.log('train_loss_ssl', loss)
         #output = p0.detach()
         return {'loss':loss}
 
