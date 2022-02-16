@@ -145,7 +145,8 @@ transformer1 = Attention(num_classes = 6, n_head=4, nlayers=3)
 head = nn.Sequential(*list(transformer1.children())[-1])
 
 transfer_model = Attention_Transfer(num_classes = 6, d_model=num_ftrs, backbone = backbone_copy1, head=head, batch_size = batch_size, finetune=True, lr=lr)
-trainer = pl.Trainer( gpus=no_gpus if str(device).startswith("cuda") else 0, deterministic=True, max_epochs= _epochs)
+# trainer = pl.Trainer( gpus=no_gpus if str(device).startswith("cuda") else 0, deterministic=True, max_epochs= _epochs)
+trainer = pl.Trainer(gpus=no_gpus, strategy='ddp', deterministic=True, max_epochs = _epochs)
 
 trainer.fit(transfer_model, datamodule = dm_bavaria)
 # exit()
@@ -156,7 +157,8 @@ head2 = nn.Sequential(*list(transformer2.children())[-1])
 
 #use pretrained backbone and finetune 
 transfer_model2 = Attention_Transfer(num_classes = 6, d_model=num_ftrs, backbone = backbone_copy2, head=head2, batch_size = batch_size, finetune=True, lr=lr)
-trainer = pl.Trainer( gpus=no_gpus if str(device).startswith("cuda") else 0, deterministic=True, max_epochs= _epochs)
+# trainer = pl.Trainer( gpus=no_gpus if str(device).startswith("cuda") else 0, deterministic=True, max_epochs= _epochs)
+trainer = pl.Trainer(gpus=no_gpus, strategy='ddp', deterministic=True, max_epochs = _epochs)
 
 trainer.fit(transfer_model2, datamodule = dm_bavaria2)
 trainer.test(transfer_model2, datamodule = dm_bavaria2)
@@ -165,7 +167,8 @@ transformer3 = Attention(num_classes = 6, n_head=4, nlayers=3)
 head3 = nn.Sequential(*list(transformer3.children())[-1])
 
 transfer_model3 = Attention_Transfer(num_classes = 6, d_model=num_ftrs, backbone = backbone_copy3, head=head3, batch_size = batch_size, finetune=True, lr=lr)
-trainer = pl.Trainer( gpus=no_gpus if str(device).startswith("cuda") else 0, deterministic=True, max_epochs= _epochs)
+# trainer = pl.Trainer( gpus=no_gpus if str(device).startswith("cuda") else 0, deterministic=True, max_epochs= _epochs)
+trainer = pl.Trainer(gpus=no_gpus, strategy='ddp', deterministic=True, max_epochs = _epochs)
 
 trainer.fit(transfer_model3, datamodule = dm_bavaria3)
 trainer.test(transfer_model3, datamodule = dm_bavaria3)
