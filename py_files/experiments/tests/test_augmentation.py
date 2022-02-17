@@ -44,6 +44,7 @@ import numpy as np
 # import umap.plot
 
 from torch.utils.data.sampler import SubsetRandomSampler
+import matplotlib.pyplot as plot
 
 #tsai could be helpful
 #from tsai.all import *
@@ -185,14 +186,38 @@ class TSDataSet(Dataset):
         # : Usage: self.aug_sample.create_augmentation([type], [n_samples])
         # : Example creates 2 samples for crop type 0
         # aug_samples = self.aug_sample.create_augmentation(0,2)
+        # fig, ax = plt.subplots(figsize=(8,5))
+        # ax.plot(aug_samples[0,0])
+        # ax.plot(aug_samples[1,0])
 
-        # import matplotlib.pyplot as plot
+        # aug_samples = self.aug_sample.create_augmentation(1,2)
         # fig, ax = plt.subplots(figsize=(8,5))
-        # for n in range(6):
-        #     ax.plot(ac.mu[n,0,:])
+        # ax.plot(aug_samples[0,0])
+        # ax.plot(aug_samples[1,0])
+
         # fig, ax = plt.subplots(figsize=(8,5))
-        # for n in range(6):
-        #     ax.plot(ac.std[n,0,:])
+        # ax.plot(data_sorted[0,0,:,251])
+        # ax.plot(data_sorted[1,0,:,250])
+
+        fig, ax = plt.subplots(figsize=(8,5))
+        for n in range(6):
+            ax.plot(self.aug_sample.mu[n,0,:])  # mu[type, channel, timestep]
+        # ax.title('$\mu$')
+
+        fig, ax = plt.subplots(figsize=(8,5))
+        for n in range(6):
+            ax.plot(self.aug_sample.std[n,0,:])  # std[type, channel, timestep]
+        # ax.title('$\sigma$')
+
+        fig, ax = plt.subplots(figsize=(8,5))
+        for n in range(6):
+            ax.plot(self.aug_sample.mu[n,3,:])  # mu[type, channel, timestep]
+        # ax.title('$\mu$')
+
+        fig, ax = plt.subplots(figsize=(8,5))
+        for n in range(6):
+            ax.plot(self.aug_sample.std[n,3,:])  # std[type, channel, timestep]
+        # ax.title('$\sigma$')
 
 
     def __len__(self):
@@ -228,7 +253,7 @@ cc = TSDataSet(train, feature_list.tolist())
 
 #%%
 # print(df.shape)
-print(df[:10,0,0])
+# print(df[:10,0,0])
 # print(df)
 # y = y.reshape(int(_fields_amount),1, 14)
 # field_ids = field_ids.reshape(int(_fields_amount),1, time_steps)
