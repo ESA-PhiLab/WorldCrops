@@ -8,6 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from sklearn.metrics import accuracy_score
 
+from .PositionalEncoding import *
 
 class Max(nn.Module):
     def forward(self, x): return x.max(1)[0]
@@ -59,7 +60,7 @@ class Attention(nn.Module):
 
 class Attention_LM(pl.LightningModule):
 
-    def __init__(self, input_dim = 13, num_classes = 7, d_model = 64, n_head = 2, d_ffn = 128, nlayers = 2, dropout = 0.018, activation="relu", lr = 0.0002, batch_size  = 3, seed=42):
+    def __init__(self, input_dim = 13, seq_length = 14, num_classes = 7, d_model = 64, n_head = 2, d_ffn = 128, nlayers = 2, dropout = 0.018, activation="relu", lr = 0.0002, batch_size  = 3, seed=42, PositonalEncoding = False):
         super().__init__()
         """
         Args:
@@ -79,6 +80,8 @@ class Attention_LM(pl.LightningModule):
 
         self.model_type = 'Transformer_LM'
         pl.seed_everything(seed)
+        self.PositionalEncoding = PositionalEncoding
+        self.seq_length = seq_length
 
         # Hyperparameters
         self.lr = lr
@@ -89,13 +92,25 @@ class Attention_LM(pl.LightningModule):
         # Layers
         encoder_layers = nn.TransformerEncoderLayer(d_model, n_head, dim_feedforward=d_ffn, dropout = dropout, activation=activation, batch_first=True)
 
-        self.backbone = nn.Sequential(
-            nn.Linear(input_dim, d_model),
-            nn.ReLU(),
-            nn.TransformerEncoder(encoder_layers, nlayers, nn.LayerNorm(d_model)),
-            Max(),
-            nn.ReLU()
-        )
+        if self.PositionalEncoding:
+
+            self.backbone = nn.Sequential(
+                nn.Linear(input_dim, d_model),
+                nn.ReLU(),
+                PositionalEncoding(d_model = d_model, dropout = 0),
+                nn.TransformerEncoder(encoder_layers, nlayers, nn.LayerNorm(d_model)),
+                Max(),
+                nn.ReLU()
+            )
+        else:
+            self.backbone = nn.Sequential(
+                nn.Linear(input_dim, d_model),
+                nn.ReLU(),
+                nn.TransformerEncoder(encoder_layers, nlayers, nn.LayerNorm(d_model)),
+                Max(),
+                nn.ReLU()
+            )
+
         self.outlinear = nn.Sequential(
             nn.Linear(d_model, num_classes)
         )
@@ -161,7 +176,7 @@ class Attention_LM(pl.LightningModule):
         x, y = test_batch
         y_pred = self.forward(x)
         loss = self.ce(y_pred, y)
-        self.log('test_results', loss,on_step=True,prog_bar=True)
+        #self.log('test_results', loss,on_step=True,prog_bar=True)
 
         y_true = y.detach()
         y_pred = y_pred.argmax(-1).detach()
@@ -285,7 +300,7 @@ class Attention_Transfer(pl.LightningModule):
         x, y = test_batch
         y_pred = self.forward(x)
         loss = self.ce(y_pred, y)
-        self.log('test_results', {'test_loss' : loss},on_step=True,prog_bar=True)
+        #self.log('test_results', {'test_loss' : loss},on_step=True,prog_bar=True)
 
         y_true = y.detach()
         y_pred = y_pred.argmax(-1).detach()
