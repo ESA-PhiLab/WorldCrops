@@ -12,7 +12,7 @@ from lightly.models.utils import batch_unshuffle
 from lightly.models.utils import deactivate_requires_grad
 from lightly.models.utils import update_momentum
 from lightly.utils import BenchmarkModule
-
+import math
 from lightly.models.modules.heads import SimSiamPredictionHead
 from lightly.models.modules.heads import SimSiamProjectionHead
 
@@ -68,6 +68,7 @@ class SimSiam_LM(pl.LightningModule):
         self.avg_loss = 0.
         self.avg_output_std = 0.
         self.collapse_level = 0.
+        self.out_dim = out_dim
         
 
     def forward(self, x0, x1):

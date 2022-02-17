@@ -16,8 +16,8 @@ class BavariaDataModule(pl.LightningDataModule):
         self.num_workers = num_workers
         self.data = pd.read_excel(self.data_dir)
         #list with selected features "Bands 1-13"
-        self.feature_list = self.data.columns[self.data.columns.str.contains('B')]
-        # only NDVI
+        self.feature_list = self.data.columns[self.data.columns.str.contains('B')].tolist()
+        # only NDVI['B3_mean','B4_mean','B5_mean','B6_mean','B7_mean','B8_mean','B8A_mean','B11_mean','B12_mean']#
         #self.feature_list = self.data.columns[self.data.columns.str.contains('NDVI')]
 
         #preprocess
@@ -41,8 +41,8 @@ class BavariaDataModule(pl.LightningDataModule):
         def func(df):
             return clean_bavarian_labels(df)
 
-        ts_train = TSDataSet(train, self.feature_list.tolist(), 'NC', field_id = 'id')
-        ts_test = TSDataSet(test, self.feature_list.tolist(), 'NC', field_id = 'id')
+        ts_train = TSDataSet(train, self.feature_list, 'NC', field_id = 'id')
+        ts_test = TSDataSet(test, self.feature_list, 'NC', field_id = 'id')
 
         # Assign train/val datasets for use in dataloaders
         if stage in (None, "fit"):
@@ -73,8 +73,8 @@ class Bavaria1617DataModule(pl.LightningDataModule):
         self.num_workers = num_workers
         self.data = pd.read_excel(self.data_dir)
         #list with selected features "Bands 1-13"
-        self.feature_list = self.data.columns[self.data.columns.str.contains('B')]
-        # only NDVI
+        self.feature_list = self.data.columns[self.data.columns.str.contains('B')].tolist()
+        # only NDVI ['B3_mean','B4_mean','B5_mean','B6_mean','B7_mean','B8_mean','B8A_mean','B11_mean','B12_mean']#
         #self.feature_list = self.data.columns[self.data.columns.str.contains('NDVI')]
 
         #preprocess
@@ -88,15 +88,15 @@ class Bavaria1617DataModule(pl.LightningDataModule):
     def setup(self, stage: Optional[str] = None):
 
         # use the full data set and make train test split
-        test_2018 = self.data[self.data.Year == 2017]
-        train_1617 = self.data[self.data.Year == 2016]
+        test_2018 = self.data[self.data.Year == 2018]
+        train_1617 = self.data[self.data.Year != 2018]
 
         #callback function for dataframe cleaning, interpolation etc.
         def func(df):
             return clean_bavarian_labels(df)
 
-        ts_train = TSDataSet(train_1617, self.feature_list.tolist(), 'NC', field_id = 'id')
-        ts_test = TSDataSet(test_2018, self.feature_list.tolist(), 'NC', field_id = 'id')
+        ts_train = TSDataSet(train_1617, self.feature_list, 'NC', field_id = 'id')
+        ts_test = TSDataSet(test_2018, self.feature_list, 'NC', field_id = 'id')
 
         # Assign train/val datasets for use in dataloaders
         if stage in (None, "fit"):
@@ -125,8 +125,8 @@ class Bavaria1percentDataModule(pl.LightningDataModule):
         self.num_workers = num_workers
         self.data = pd.read_excel(self.data_dir)
         #list with selected features "Bands 1-13"
-        self.feature_list = self.data.columns[self.data.columns.str.contains('B')]
-        # only NDVI
+        self.feature_list = self.data.columns[self.data.columns.str.contains('B')].tolist()
+        # only NDVI ['B3_mean','B4_mean','B5_mean','B6_mean','B7_mean','B8_mean','B8A_mean','B11_mean','B12_mean']
         #self.feature_list = self.data.columns[self.data.columns.str.contains('NDVI')]
 
         #preprocess
@@ -144,20 +144,22 @@ class Bavaria1percentDataModule(pl.LightningDataModule):
         # one percent sample data for 2018
         _2018 = self.data[self.data.Year == 2018]
         samples = pd.DataFrame()
-        for i in range(0,6):
-            id = _2018[(_2018.NC == i)].sample(1).id
-            sample = _2018[(_2018.id == id.values[0])]
-            #delete row in orginal 2018 data
-            _2018 = _2018.drop(_2018[_2018.id == id.values[0]].index)
-            samples = pd.concat([samples,sample],axis=0)
+
+        for j in range(5):
+            for i in range(0,6):
+                id = _2018[(_2018.NC == i)].sample(1).id
+                sample = _2018[(_2018.id == id.values[0])]
+                #delete row in orginal 2018 data
+                _2018 = _2018.drop(_2018[_2018.id == id.values[0]].index)
+                samples = pd.concat([samples,sample],axis=0)
         percent1 = pd.concat([train_1617,samples],axis = 0)
 
         #callback function for dataframe cleaning, interpolation etc.
         def func(df):
             return clean_bavarian_labels(df)
 
-        ts_train = TSDataSet(percent1, self.feature_list.tolist(), 'NC', field_id = 'id')
-        ts_test = TSDataSet(_2018, self.feature_list.tolist(), 'NC', field_id = 'id')
+        ts_train = TSDataSet(percent1, self.feature_list, 'NC', field_id = 'id')
+        ts_test = TSDataSet(_2018, self.feature_list, 'NC', field_id = 'id')
 
         # Assign train/val datasets for use in dataloaders
         if stage in (None, "fit"):
@@ -181,6 +183,7 @@ class Bavaria1percentDataModule(pl.LightningDataModule):
 
 class DataModule_augmentation(pl.LightningDataModule):
     def __init__(self, data_dir: str = "./", batch_size = 32, num_workers = 2):
+        '''augment between 2016 and 2017 for each crop type'''
         super().__init__()
         self.data_dir = data_dir
         self.transform = None
@@ -188,16 +191,16 @@ class DataModule_augmentation(pl.LightningDataModule):
         self.num_workers = num_workers
         self.data = pd.read_excel(self.data_dir)
         #list with selected features "Bands 1-13"
-        self.feature_list = self.data.columns[self.data.columns.str.contains('B')]
+        self.feature_list = self.data.columns[self.data.columns.str.contains('B')].tolist()
         # only NDVI
         #self.feature_list = self.data.columns[self.data.columns.str.contains('NDVI')]
 
         #preprocess
         self.data = clean_bavarian_labels(self.data)
-        #self.data = self.data[self.data.Year != 2018]
+        self.data = self.data[self.data.Year != 2018]
         self.data = rewrite_id_CustomDataSet(self.data)
         #add additional ids for augmentation
-        self.data = augment_df(self.data, [2016,2017,2018])
+        self.data = augment_df(self.data, [2016,2017])
 
         #data sets
         self.train = None
@@ -205,7 +208,7 @@ class DataModule_augmentation(pl.LightningDataModule):
         self.test = None
 
     def setup(self, stage: Optional[str] = None):
-        ts_train = TimeSeriesPhysical(self.data, self.feature_list.tolist(), 'NC')
+        ts_train = TimeSeriesPhysical(self.data, self.feature_list, 'NC')
 
         # Assign train/val datasets for use in dataloaders
         if stage in (None, "fit"):
@@ -268,20 +271,35 @@ class AugmentationExperiments(pl.LightningDataModule):
         return train, test
 
 
+
     def setup(self, stage: Optional[str] = None):
 
         if self.experiment == 'Experiment1':
             train ,test = self.experiment1()
+            ts_data = CropInvarianceAug(train, self.feature_list.tolist(), size=10000)
+
         elif self.experiment == 'Experiment2':
             train ,test = self.experiment2()
+            ts_data = TSAugmented(train, factor=2, feature_list=self.feature_list.tolist())
+
         elif self.experiment == 'Experiment3':
             train ,test = self.experiment3()
+            #ts_data = TSAugmented(train, factor=2, feature_list=self.feature_list.tolist())
+
+        elif self.experiment == 'Experiment4':
+            ''' Train invariance between years independent of crop type '''
+            train = self.data
+            ts_data = YearInvarianceAug(train, self.feature_list.tolist(), size=10000)
+
+        elif self.experiment == 'Experiment5':
+            ''' Train invariance between crops for 2016/2017 '''
+            train = self.data[self.data.Year != 2018]
+            ts_data = CropInvarianceAug(train, self.feature_list.tolist(), size=10000)
+
         else:
             print('Experiment not definend')
 
-        #ts_data = Test2016(train, self.feature_list.tolist(), size=10000)
-        ts_data = TSAugmented(train, factor=2, feature_list=self.feature_list.tolist())
-
+        
        # Assign train/val datasets for use in dataloaders
         if stage in (None, "fit"):
             self.train = ts_data

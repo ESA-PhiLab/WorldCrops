@@ -89,7 +89,10 @@ test = rewrite_id_CustomDataSet(test)
 
 # %%
 feature_list = train.columns[train.columns.str.contains('B')]
+# %%
+feature_list.tolist()
 
+# %%
 import seaborn as sns
 from sklearn import preprocessing
 

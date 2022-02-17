@@ -59,9 +59,12 @@ test_size = 0.25
 SEED = 42
 num_workers=4
 shuffle_dataset =True
-_epochs = 30
+_epochs = 100
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 lr = 0.0016612
+input_dim = 13
+#PositonalEncoding
+PA = False
 
 def seed_torch(seed=42):
     random.seed(seed)
@@ -119,24 +122,23 @@ dm_bavaria3 = Bavaria1percentDataModule(data_dir = '../../data/cropdata/Bavaria/
 # %%
 # Plots the optimal learning rate
 
-model = Attention_LM(num_classes = 6, n_head=4, nlayers=3, batch_size = batch_size, lr=lr, seed=42)
+model = Attention_LM(input_dim=input_dim, num_classes = 6, n_head=4, nlayers=3, batch_size = batch_size, lr=lr, seed=42, PositonalEncoding=PA)
 model_copy = copy.deepcopy(model)
 #torch.save(model_copy, "../model/pretrained/orginal_model1.ckpt")
 
 # %%
-trainer = pl.Trainer(auto_lr_find=True)
-lr_finder = trainer.tuner.lr_find(model, datamodule = dm_bavaria)#, min_lr=0.001, max_lr=0.005, mode='linear')
+#trainer = pl.Trainer(auto_lr_find=True)
+#lr_finder = trainer.tuner.lr_find(model, datamodule = dm_bavaria)#, min_lr=0.001, max_lr=0.005, mode='linear')
 
-fig = lr_finder.plot(suggest=True)
-fig.show()
-print(lr_finder.suggestion())
+#fig = lr_finder.plot(suggest=True)
+#fig.show()
+#print(lr_finder.suggestion())
 
 # find batch size
-trainer = pl.Trainer(deterministic=True, max_epochs=50, check_val_every_n_epoch=10, auto_scale_batch_size='binsearch')
-optimal_batch_size = trainer.tune(model, datamodule = dm_bavaria)
-print(f"Found best batch size to be: {optimal_batch_size}")
-fig.savefig('lr.png')
-
+#trainer = pl.Trainer(deterministic=True, max_epochs=50, check_val_every_n_epoch=10, auto_scale_batch_size='binsearch')
+#optimal_batch_size = trainer.tune(model, datamodule = dm_bavaria)
+#print(f"Found best batch size to be: {optimal_batch_size}")
+#fig.savefig('lr.png')
 
 
 # %%
@@ -145,24 +147,24 @@ fig.savefig('lr.png')
 ############################################################################
 # 
 #seed_everything(42, workers=True)
-trainer = pl.Trainer( gpus=1 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs= _epochs)
+trainer = pl.Trainer( deterministic=True, max_epochs= _epochs)
 trainer.fit(model, datamodule=dm_bavaria)
 trainer.test(model, datamodule=dm_bavaria)
 
 # %%
 # Second experiment train 2016 and 17 - test on 2018
-model2 = Attention_LM(num_classes = 6, n_head=4, nlayers=3, batch_size = batch_size, lr=lr)
+model2 = Attention_LM(input_dim=input_dim, num_classes = 6, n_head=4, nlayers=3, batch_size = batch_size, lr=lr, PositonalEncoding=PA)
 model_copy2 = copy.deepcopy(model2)
 #torch.save(model_copy2, "../model/pretrained/orginal_model2.ckpt")
-trainer = pl.Trainer( gpus=1 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs= _epochs)
+trainer = pl.Trainer( deterministic=True, max_epochs= _epochs)
 
 trainer.fit(model2, datamodule = dm_bavaria2)
 #dm_bavaria2.setup(stage="test")
 trainer.test(model2, datamodule = dm_bavaria2)
 
 # %%
-trainer = pl.Trainer( gpus=1 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs= _epochs)
-model3 = Attention_LM(num_classes = 6, n_head=4, nlayers=3, batch_size = batch_size, lr=lr)
+trainer = pl.Trainer( deterministic=True, max_epochs= _epochs)
+model3 = Attention_LM(input_dim=input_dim, num_classes = 6, n_head=4, nlayers=3, batch_size = batch_size, lr=lr, PositonalEncoding=PA)
 model_copy3 = copy.deepcopy(model3)
 #torch.save(model_copy3, "../model/pretrained/orginal_model3.ckpt")
 
@@ -172,32 +174,6 @@ dm_bavaria3.setup(stage="test")
 trainer.test(model3, datamodule = dm_bavaria3)
 
 
-# %%
-
-#use pretrained backbone and finetune 
-# copy of orginal model due to seed
-#transformer1 = Attention(num_classes = 6, n_head=4, nlayers=3)
-#backbone3 = nn.Sequential(*list(transformer1.children())[-2])
-#head3 = nn.Sequential(*list(transformer1.children())[-1])
-
-#transformer = Attention_LM(num_classes = 6, n_head=4, nlayers=3)
-#backbone2 = nn.Sequential(*list(transformer.children())[-2])
-#head2 = nn.Sequential(*list(transformer.children())[-1])
-
-#backbone  = copy.deepcopy(nn.Sequential(*list(model_copy.children())[1]))
-#head= copy.deepcopy(nn.Sequential(*list(model_copy.children())[2]))
-#backbone = nn.Sequential(*list(transformer.children())[-2])
-#transfer_model = Attention_Transfer(num_classes = 6, backbone = backbone3, head=head3, batch_size = batch_size, finetune=True, lr=lr)
-
-#trainer = pl.Trainer( gpus=1 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs= _epochs)
-#trainer.fit(transfer_model, datamodule = dm_bavaria)
-#trainer.test(transfer_model, datamodule = dm_bavaria)
-
- # %%
-
-#torch.save(model_copy, "../model/pretrained/orginal_model.ckpt")
-#orginal = torch.load("../model/pretrained/orginal_model.ckpt")
-#orginal
 
 
  # %%

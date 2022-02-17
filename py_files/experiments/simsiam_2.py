@@ -58,7 +58,7 @@ test_size = 0.25
 # SEED = 42
 num_workers=4
 shuffle_dataset =True
-_epochs = 2
+_epochs = 200
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 lr =  0.0016612
 lr_sim = 0.05 * batch_size / 256
@@ -95,8 +95,6 @@ trainer = pl.Trainer( gpus=1 if str(device).startswith("cuda") else 0, determini
 trainer.fit(model, datamodule=dm16)
 trainer.test(model, datamodule=dm16)
 
-# %%
-model_sim
 
 # %%
 transformer = Attention(num_classes = 6, n_head=4, nlayers=3)
@@ -125,6 +123,7 @@ class SimSiam_LM2(pl.LightningModule):
 
         self.avg_loss = 0.
         self.avg_output_std = 0.
+        self.collapse_level = 0.
         
 
     def forward(self, x0, x1):
@@ -147,34 +146,30 @@ class SimSiam_LM2(pl.LightningModule):
         (z0, p0),(z1, p1) = self.forward(x0,x1)
 
         loss = 0.5 * (self.ce(z0, p1) + self.ce(z1, p0))
-        self.log('train_loss_ssl', abs(loss))
-        #output = p0.detach()
-        return {'loss':loss}
 
-    '''def training_step_end(self, batch_parts):
-        #print(batch_parts['p0'], type(batch_parts['p0']))
-        output = batch_parts['p0']
-        loss = batch_parts['loss']
+        #collapse based on https://docs.lightly.ai/tutorials/package/tutorial_simsiam_esa.html
+        output = p0.detach()
         output = torch.nn.functional.normalize(output, dim=1)
+
         output_std = torch.std(output, 0)
         output_std = output_std.mean()
-        
+
         # use moving averages to track the loss and standard deviation
         w = 0.9
-        self.avg_loss = w * self.avg_loss + (1 - w) * loss
+        self.avg_loss = w * self.avg_loss + (1 - w) * loss.item()
         self.avg_output_std = w * self.avg_output_std + (1 - w) * output_std.item()
-        return {'loss':self.avg_loss,'avg_output_std': self.avg_output_std}'''
+
+        self.log('train_loss_ssl', loss)
+        self.log('Avgloss', self.avg_loss)
+        self.log('Avgstd', self.avg_output_std)
+        return {'loss':loss}
+
     
     def training_epoch_end(self, outputs):
-        #https://docs.ray.io/en/latest/tune/tutorials/tune-pytorch-lightning.html
-        avg_loss = torch.stack([x["loss"] for x in outputs]).mean()
-        #avg_output_std
         # the level of collapse is large if the standard deviation of the l2
         # normalized output is much smaller than 1 / sqrt(dim)
-        #collapse_level = max(0., 1 - math.sqrt(self.out_dim) * avg_output_std)
-        #self.log('Collapse Level', round(collapse_evel,2))
-
-
+        self.collapse_level = max(0., 1 - math.sqrt(self.out_dim) * self.avg_output_std)
+        self.log('Collapse Level', round(self.collapse_level,2))
 
     def validation_step(self, val_batch, batch_idx):
         (x0, x1), _, _ = val_batch
@@ -223,3 +218,28 @@ trainer.fit(transfer_model, datamodule = dm16)
 trainer.test(transfer_model, datamodule = dm16)
 
 #test 113 - 116 sagt dass sich nichts verändert 0.77
+# %%
+
+from torch import Tensor as tensor
+
+#test function
+outputs = [{'loss': tensor(1), 'p0': tensor([[1, 2],[ 1, 2],[ 1, 2]])}, {'loss': tensor(1), 'p0': tensor([[1, 2],[ 1, 2],[ 1, 2]])}]
+
+# %%
+torch.stack([x["loss"] for x in outputs]).std()
+p = torch.stack([x["p0"] for x in outputs])
+output = torch.nn.functional.normalize(p, dim=1)
+output
+output_std = torch.std(output, 0)
+output_std = output_std.mean()
+# %%
+_loss = torch.stack([x["loss"] for x in outputs]).mean()
+        p  = torch.stack([x["p0"] for x in outputs]).mean()
+        output = torch.nn.functional.normalize(p, dim=1)
+        output_std = torch.std(output, 0)
+        output_std = output_std.mean()
+
+        # use moving averages to track the loss and standard deviation
+        w = 0.9
+        self.avg_loss = w * self.avg_loss + (1 - w) * _loss
+        self.avg_output_std = w * self.avg_output_std + (1 - w) * output_std.item()
