@@ -423,7 +423,6 @@ class CropInvarianceAug(Dataset):
         return self.size
 
     def __getitem__(self, idx):
-
         x1 = self.augmented[idx,0]
         x2 = self.augmented[idx,1]
 
