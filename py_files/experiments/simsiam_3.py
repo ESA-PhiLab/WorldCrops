@@ -30,8 +30,9 @@ import copy
 
 ################################
 #IARAI / ESA
-IARAI = False
-no_gpus = 4
+IARAI = True
+no_gpus = 8
+no_gpus = [0,1,2,3,4,5,6]
 ################################
 
 
@@ -40,9 +41,9 @@ batch_size = 1349
 test_size = 0.25
 num_workers=4
 shuffle_dataset =True
-_epochs = 1
+_epochs = 300
 input_dim = 13
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+#device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 lr =  0.0016612
 
 #definitions for simsiam
@@ -85,17 +86,17 @@ dm_augmented = DataModule_augmentation(data_dir = '../../data/cropdata/Bavaria/s
 #augmentation between years independent of crop type
 dm_years = AugmentationExperiments(data_dir = '../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx', batch_size = batch_size_sim, num_workers = num_workers, experiment='Experiment4')
 
-# data for invariance between crops 
-dm_crops1 = AugmentationExperiments(data_dir = '../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx', batch_size = batch_size_sim, num_workers = num_workers, experiment='Experiment3')
-dm_crops2 = AugmentationExperiments(data_dir = '../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx', batch_size = batch_size_sim, num_workers = num_workers, experiment='Experiment5')
-dm_crops3 = AugmentationExperiments(data_dir = '../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx', batch_size = batch_size_sim, num_workers = num_workers, experiment='Experiment6')
-dm_crops4 = AugmentationExperiments(data_dir = '../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx', batch_size = batch_size_sim, num_workers = num_workers, experiment='Experiment7')
+# data for invariance between crops
+#dm_crops1 = AugmentationExperiments(data_dir = '../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx', batch_size = batch_size_sim, num_workers = num_workers, experiment='Experiment3')
+#dm_crops2 = AugmentationExperiments(data_dir = '../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx', batch_size = batch_size_sim, num_workers = num_workers, experiment='Experiment5')
+#dm_crops3 = AugmentationExperiments(data_dir = '../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx', batch_size = batch_size_sim, num_workers = num_workers, experiment='Experiment6')
+#dm_crops4 = AugmentationExperiments(data_dir = '../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx', batch_size = batch_size_sim, num_workers = num_workers, experiment='Experiment7')
 
 #daniel datamodule mit statistiken
-#dm_crops1 = AugmentationExperiments(data_dir = '../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx', batch_size = batch_size_sim, num_workers = num_workers, experiment='Experiment8')
-#dm_crops2 = AugmentationExperiments(data_dir = '../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx', batch_size = batch_size_sim, num_workers = num_workers, experiment='Experiment9')
-#dm_crops3 = AugmentationExperiments(data_dir = '../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx', batch_size = batch_size_sim, num_workers = num_workers, experiment='Experiment10')
-#dm_crops4 = AugmentationExperiments(data_dir = '../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx', batch_size = batch_size_sim, num_workers = num_workers, experiment='Experiment11')
+dm_crops1 = AugmentationExperiments(data_dir = '../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx', batch_size = batch_size_sim, num_workers = num_workers, experiment='Experiment8')
+dm_crops2 = AugmentationExperiments(data_dir = '../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx', batch_size = batch_size_sim, num_workers = num_workers, experiment='Experiment9')
+dm_crops3 = AugmentationExperiments(data_dir = '../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx', batch_size = batch_size_sim, num_workers = num_workers, experiment='Experiment10')
+dm_crops4 = AugmentationExperiments(data_dir = '../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx', batch_size = batch_size_sim, num_workers = num_workers, experiment='Experiment11')
 
 #normale augmentation wie blur, jitter
 #dm_crops1 = AugmentationExperiments(data_dir = '../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx', batch_size = batch_size_sim, num_workers = num_workers, experiment='Experiment8')
@@ -119,7 +120,7 @@ else:
 
 #fit the first time with one augmentation
 trainer.fit(model_sim, datamodule=dm_crops1)
-torch.save(backbone, "../model/pretrained/pretraining1.ckpt")
+torch.save(backbone, "../model/pretrained_b/pretraining1.ckpt")
 #%%
 #fit 
 transformer2 = Attention(input_dim=input_dim,num_classes = 6, n_head=4, nlayers=3)
@@ -131,7 +132,7 @@ if IARAI:
 else:
     trainer2 = pl.Trainer(deterministic=True, max_epochs = _epochs)
 trainer2.fit(model_sim2, datamodule=dm_crops2)
-torch.save(backbone2, "../model/pretrained/pretraining2.ckpt")
+torch.save(backbone2, "../model/pretrained_b/pretraining2.ckpt")
 
 #%%
 transformer3 = Attention(input_dim=input_dim,num_classes = 6, n_head=4, nlayers=3)
@@ -145,7 +146,7 @@ else:
     trainer3 = pl.Trainer(deterministic=True, max_epochs = _epochs)
 
 trainer3.fit(model_sim3, datamodule=dm_crops3)
-torch.save(backbone3, "../model/pretrained/pretraining3.ckpt")
+torch.save(backbone3, "../model/pretrained_b/pretraining3.ckpt")
 
 transformer4 = Attention(input_dim=input_dim,num_classes = 6, n_head=4, nlayers=3)
 backbone4 = nn.Sequential(*list(transformer4.children())[-2])
@@ -158,7 +159,7 @@ else:
     trainer4 = pl.Trainer(deterministic=True, max_epochs = _epochs)
 
 trainer4.fit(model_sim4, datamodule=dm_crops4)
-torch.save(backbone4, "../model/pretrained/pretraining4.ckpt")
+torch.save(backbone4, "../model/pretrained_b/pretraining4.ckpt")
 #%%
 
 #%%
