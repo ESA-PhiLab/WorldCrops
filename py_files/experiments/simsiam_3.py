@@ -106,7 +106,7 @@ dm_crops4 = AugmentationExperiments(data_dir = '../../data/cropdata/Bavaria/sent
 # %%
 # Vorgehen:
 # 1. Pre-Train transformer unsupervised mit allen Daten (typische Augmentation + physikalisch)
-# 2. Finetune 
+# 2. Finetune
 
 transformer = Attention(input_dim=input_dim,num_classes = 6, n_head=4, nlayers=3)
 backbone = nn.Sequential(*list(transformer.children())[-2])
