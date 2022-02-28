@@ -41,7 +41,8 @@ batch_size = 1349
 test_size = 0.25
 num_workers=4
 shuffle_dataset =True
-_epochs = 1000
+_epochs = 1500
+_epochs_fine = 300
 input_dim = 13
 #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 lr =  0.0016612
@@ -177,7 +178,7 @@ head = nn.Sequential(*list(transformer1.children())[-1])
 
 transfer_model = Attention_Transfer(input_dim=input_dim, num_classes = 6, d_model=num_ftrs, backbone = backbone_copy1, head=head, batch_size = batch_size, finetune=True, lr=lr)
 if IARAI:
-    trainer = pl.Trainer(gpus=no_gpus, strategy='ddp', deterministic=True, max_epochs = _epochs)
+    trainer = pl.Trainer(gpus=no_gpus, strategy='ddp', deterministic=True, max_epochs = _epochs_fine)
 else:
     trainer = pl.Trainer(deterministic=True, max_epochs= _epochs)
     
@@ -191,7 +192,7 @@ head2 = nn.Sequential(*list(transformer2.children())[-1])
 #use pretrained backbone and finetune 
 transfer_model2 = Attention_Transfer(input_dim=input_dim, num_classes = 6, d_model=num_ftrs, backbone = backbone_copy2, head=head2, batch_size = batch_size, finetune=True, lr=lr)
 if IARAI:
-    trainer = pl.Trainer(gpus=no_gpus, strategy='ddp', deterministic=True, max_epochs = _epochs)
+    trainer = pl.Trainer(gpus=no_gpus, strategy='ddp', deterministic=True, max_epochs = _epochs_fine)
 else:
     trainer = pl.Trainer(deterministic=True, max_epochs= _epochs)
 
@@ -204,7 +205,7 @@ head3 = nn.Sequential(*list(transformer3.children())[-1])
 transfer_model3 = Attention_Transfer(input_dim=input_dim, num_classes = 6, d_model=num_ftrs, backbone = backbone_copy3, head=head3, batch_size = batch_size, finetune=True, lr=lr)
 
 if IARAI:
-    trainer = pl.Trainer(gpus=no_gpus, strategy='ddp', deterministic=True, max_epochs = _epochs)
+    trainer = pl.Trainer(gpus=no_gpus, strategy='ddp', deterministic=True, max_epochs = _epochs_fine)
 else:
     trainer = pl.Trainer(deterministic=True, max_epochs= _epochs)
 
@@ -218,7 +219,7 @@ head4 = nn.Sequential(*list(transformer3.children())[-1])
 transfer_model4 = Attention_Transfer(input_dim=input_dim, num_classes = 6, d_model=num_ftrs, backbone = backbone_copy4, head=head4, batch_size = batch_size, finetune=True, lr=lr)
 
 if IARAI:
-    trainer = pl.Trainer(gpus=no_gpus, strategy='ddp', deterministic=True, max_epochs = _epochs)
+    trainer = pl.Trainer(gpus=no_gpus, strategy='ddp', deterministic=True, max_epochs = _epochs_fine)
 else:
     trainer = pl.Trainer(deterministic=True, max_epochs= _epochs)
 
