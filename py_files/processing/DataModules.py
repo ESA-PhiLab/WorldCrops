@@ -213,12 +213,12 @@ class Augmentation_Crops(pl.LightningDataModule):
 
     def experiment2(self):
         '''train/test split with data from 2016 and 2017'''
-        self.data = self.data[self.data.Year != 2018]
+        _data = self.data[self.data.Year != 2018].copy()
         splitter = GroupShuffleSplit(test_size=.25, n_splits=2, random_state = 0)
-        split = splitter.split(self.data, groups=self.data['id'])
+        split = splitter.split(_data, groups=self.data['id'])
         train_inds, test_inds = next(split)
-        train = self.data.iloc[train_inds]
-        test = self.data.iloc[test_inds]
+        train = _data.iloc[train_inds]
+        test = _data.iloc[test_inds]
         return train, test
 
     def experiment3(self):
@@ -234,9 +234,9 @@ class Augmentation_Crops(pl.LightningDataModule):
         '''train from 2016 and 2017 + 5% 2018 / test with rest 2018'''
         #amount of data in % sampled from 2018
         percent = 5
-        _train = self.data[self.data.Year != 2018]
+        _train = self.data[self.data.Year != 2018].copy()
         # x percent sample data for 2018
-        _2018 = self.data[self.data.Year == 2018]
+        _2018 = self.data[self.data.Year == 2018].copy()
         samples = pd.DataFrame()
 
         for j in range(percent):
@@ -255,9 +255,9 @@ class Augmentation_Crops(pl.LightningDataModule):
         '''train from 2016 and 2017 + 10% 2018 / test with rest 2018 '''
         #amount of data in % sampled from 2018
         percent = 10
-        _train = self.data[self.data.Year != 2018]
+        _train = self.data[self.data.Year != 2018].copy()
         # x percent sample data for 2018
-        _2018 = self.data[self.data.Year == 2018]
+        _2018 = self.data[self.data.Year == 2018].copy()
         samples = pd.DataFrame()
 
         for j in range(percent):
@@ -295,7 +295,7 @@ class Augmentation_Crops(pl.LightningDataModule):
 
         elif self.experiment == 'Experiment5':
             ''' Train invariance between crops for 2016/2017 '''
-            train = self.data[self.data.Year != 2018]
+            train = self.data[self.data.Year != 2018].copy()
             ts_data = CropInvarianceAug(train, self.feature_list.tolist(), size=10000)
 
         elif self.experiment == 'Experiment6':
@@ -315,7 +315,7 @@ class Augmentation_Crops(pl.LightningDataModule):
 
         elif self.experiment == 'Experiment9':
             ''' Train for 2016/2017 '''
-            train = self.data[self.data.Year != 2018]
+            train = self.data[self.data.Year != 2018].copy()
             ts_data = TSAugmented(train, factor=5, feature_list=self.feature_list.tolist())
 
         elif self.experiment == 'Experiment10':
@@ -380,12 +380,12 @@ class AugmentationExperiments(pl.LightningDataModule):
 
     def experiment2(self):
         '''train/test split with data from 2016 and 2017'''
-        self.data = self.data[self.data.Year != 2018]
+        _data = self.data[self.data.Year != 2018].copy()
         splitter = GroupShuffleSplit(test_size=.25, n_splits=2, random_state = 0)
-        split = splitter.split(self.data, groups=self.data['id'])
+        split = splitter.split(_data, groups=_data['id'])
         train_inds, test_inds = next(split)
-        train = self.data.iloc[train_inds]
-        test = self.data.iloc[test_inds]
+        train = _data.iloc[train_inds]
+        test = _data.iloc[test_inds]
         return train, test
 
     def experiment3(self):
@@ -401,9 +401,9 @@ class AugmentationExperiments(pl.LightningDataModule):
         '''train from 2016 and 2017 + 5% 2018 / test with rest 2018'''
         #amount of data in % sampled from 2018
         percent = 5
-        _train = self.data[self.data.Year != 2018]
+        _train = self.data[self.data.Year != 2018].copy()
         # x percent sample data for 2018
-        _2018 = self.data[self.data.Year == 2018]
+        _2018 = self.data[self.data.Year == 2018].copy()
         samples = pd.DataFrame()
 
         for j in range(percent):
@@ -422,9 +422,9 @@ class AugmentationExperiments(pl.LightningDataModule):
         '''train from 2016 and 2017 + 10% 2018 / test with rest 2018 '''
         #amount of data in % sampled from 2018
         percent = 10
-        _train = self.data[self.data.Year != 2018]
+        _train = self.data[self.data.Year != 2018].copy()
         # x percent sample data for 2018
-        _2018 = self.data[self.data.Year == 2018]
+        _2018 = self.data[self.data.Year == 2018].copy()
         samples = pd.DataFrame()
 
         for j in range(percent):
@@ -462,7 +462,7 @@ class AugmentationExperiments(pl.LightningDataModule):
 
         elif self.experiment == 'Experiment5':
             ''' Train invariance between crops for 2016/2017 '''
-            train = self.data[self.data.Year != 2018]
+            train = self.data[self.data.Year != 2018].copy()
             ts_data = CropInvarianceAug(train, self.feature_list.tolist(), size=10000)
 
         elif self.experiment == 'Experiment6':
@@ -482,7 +482,7 @@ class AugmentationExperiments(pl.LightningDataModule):
 
         elif self.experiment == 'Experiment9':
             ''' Train for 2016/2017 '''
-            train = self.data[self.data.Year != 2018]
+            train = self.data[self.data.Year != 2018].copy()
             ts_data = TSAugmented(train, factor=5, feature_list=self.feature_list.tolist())
 
         elif self.experiment == 'Experiment10':
@@ -494,6 +494,23 @@ class AugmentationExperiments(pl.LightningDataModule):
             ''' Train for 2016/2017 + 10% from 2018 '''
             train, _ = self.experiment5()
             ts_data = TSAugmented(train, factor=5, feature_list=self.feature_list.tolist())
+        
+        elif self.experiment == 'Experiment12':
+            train, _ = self.experiment3()
+            ts_data = DriftNoiseAug(train, factor=5, feature_list=self.feature_list.tolist())
+
+        elif self.experiment == 'Experiment13':
+            train = self.data[self.data.Year != 2018].copy()
+            ts_data = DriftNoiseAug(train, factor=5, feature_list=self.feature_list.tolist())
+
+        elif self.experiment == 'Experiment14':
+            train, _ = self.experiment4()
+            ts_data = DriftNoiseAug(train, factor=5, feature_list=self.feature_list.tolist())
+
+        elif self.experiment == 'Experiment15':
+            ''' Train for 2016/2017 + 10% from 2018 '''
+            train, _ = self.experiment5()
+            ts_data = DriftNoiseAug(train, factor=5, feature_list=self.feature_list.tolist())
 
         else:
             print('Experiment not definend')

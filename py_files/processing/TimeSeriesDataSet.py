@@ -3,9 +3,10 @@ import numpy as np
 from tqdm import tqdm
 import torch
 from torch.utils.data import Dataset
-from tsaug import TimeWarp, Crop, Quantize, Drift, Reverse, AddNoise
 import pandas as pd
 import random
+from tsaug import AddNoise, Convolve, Crop, Drift, Dropout, Pool, Quantize, Resize, Reverse, TimeWarp
+
 
 class OwnAugmentation():
 
@@ -186,49 +187,7 @@ class TSAugmented(Dataset):
 
 
 
-class TimeSeriesAugmented(Dataset):
-    '''
-    :param data: dataset of type pandas.DataFrame
-    :param target_col: targeted column name
-    :param feature_list: list with target features
-    '''
 
-    def __init__(self, data, feature_list, target_col):
-        self.xy = data
-        self.target_col = target_col
-        self.feature_list = feature_list
-
-    def __len__(self):
-        return len(self.xy.id.unique())
-
-    def __getitem__(self, field_idx):
-
-        x = self.xy[self.xy.id == field_idx][self.feature_list].values
-        y = self.xy[self.xy.id == field_idx][self.target_col].values
-
-        torchx = self.x2torch(x)
-        torchy = self.y2torch(y)
-
-        #augmentation with jitter and scaling
-        aug_x1 = self.x2torch(OwnAugmentation.jitter(x))
-        aug_x2 = self.x2torch(OwnAugmentation.scaling(x))
-
-        return (aug_x1, aug_x2), torchx, torchy
-        #return torchx, torchy
-        
-    def x2torch(self, x):
-        '''
-        return torch for x
-        '''
-        #nb_obs, nb_features = self.x.shape
-        return torch.from_numpy(x).type(torch.FloatTensor)
-
-    def y2torch(self, y):
-        '''
-        return torch for y
-        '''
-        y = y[1]
-        return torch.tensor(y, dtype=torch.long)
 
 class TimeSeriesPhysical(Dataset):
     '''
@@ -431,6 +390,8 @@ class CropInvarianceAug(Dataset):
         '''
         random_field = random.choice(data.id.unique())
         random_crop = random.choice(data.NC.unique())
+        #random_year = random.choice(data.Year.unique())
+
         #choose random crop and then two random fields from this crop
         field_id1 = random.choice(data[data.NC == random_crop].id.unique())
         field_id2 = random.choice(data[data.NC == random_crop].id.unique())
@@ -533,4 +494,84 @@ class YearInvarianceAug(Dataset):
 
             
         
-    
+class DriftNoiseAug(Dataset):
+
+    def __init__(self, data, factor=1, feature_list = [], target_col = 'NC', field_id = 'id', time_steps = 14, callback = None):
+        self.df = data
+        self.factor = factor
+        self.df = self.reproduce(data, self.factor)
+        self.target_col = target_col
+        self.feature_list = feature_list
+        self.time_steps = time_steps
+        
+
+        if callback != None:
+            self.df = callback(self.df)
+
+        self._fields_amount = len(self.df[field_id].unique())*self.factor
+
+        #get numpy
+        self.y = self.df[self.target_col].values
+        self.field_ids = self.df[field_id].values
+        self.df = self.df[self.feature_list].values
+
+        if self.factor < 1:
+            print('Factor needs to be at least 1')
+            return
+        if self.y.size == 0:
+            print('Target column not in dataframe')
+            return
+        if self.field_ids.size == 0:
+            print('Field id not defined')
+            return
+        
+        #reshape to 3D
+        #field x T x D
+        self.df = self.df.reshape(int(self._fields_amount),self.time_steps, len(self.feature_list))
+        self.y = self.y.reshape(int(self._fields_amount),1, self.time_steps)
+        self.field_ids = self.field_ids.reshape(int(self._fields_amount),1, self.time_steps)
+
+
+    def reproduce(self, df, _size):
+        ''' reproduce the orginal df with factor X times'''
+        newdf = pd.DataFrame()
+        for idx in range(_size):
+            newdf = pd.concat([newdf, df.copy()], axis=0)
+            #print(len(newdf),_size)
+        return newdf
+
+    def __len__(self):
+        return self.df.shape[0]
+
+    def __getitem__(self, idx):
+        x = self.df[idx,:,:]
+        y = self.y[idx,0,0]
+        field_id = self.field_ids[idx,0,0]
+
+        aug_type = random.choice([0,1])
+
+        if aug_type == 0:
+            aug_x1 = x
+            aug_x2 = Drift(max_drift=0.1, n_drift_points=2).augment(x)
+        else:
+            aug_x1 = x
+            aug_x2 = AddNoise(scale=0.02).augment(x)
+
+        torchx = self.x2torch(x)
+        torchy = self.y2torch(y)
+
+        return (self.x2torch(aug_x1), self.x2torch(aug_x2)), torchx, torchy #, torch.tensor(field_id, dtype=torch.long)
+
+        
+    def x2torch(self, x):
+        '''
+        return torch for x
+        '''
+        #nb_obs, nb_features = self.x.shape
+        return torch.from_numpy(x).type(torch.FloatTensor)
+
+    def y2torch(self, y):
+        '''
+        return torch for y
+        '''
+        return torch.tensor(y, dtype=torch.long)
