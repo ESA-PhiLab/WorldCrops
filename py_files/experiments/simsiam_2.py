@@ -95,16 +95,17 @@ trainer = pl.Trainer( gpus=1 if str(device).startswith("cuda") else 0, determini
 trainer.fit(model, datamodule=dm16)
 trainer.test(model, datamodule=dm16)
 
+no_gpus = 1
 
 # %%
 transformer = Attention(num_classes = 6, n_head=4, nlayers=3)
 backbone = nn.Sequential(*list(transformer.children())[-2])
 
 class SimSiam_LM2(pl.LightningModule):
-    def __init__(self, backbone = nn.Module, num_ftrs=64, proj_hidden_dim=14, 
+    def __init__(self, backbone = nn.Module, num_ftrs=64, proj_hidden_dim=14,
     pred_hidden_dim=14, out_dim=14, lr=0.02, weight_decay=5e-4,momentum=0.9,epochs = 10):
         super().__init__()
-        
+
         self.lr = lr
         self.momentum = momentum
         self.weight_decay = weight_decay
@@ -124,7 +125,7 @@ class SimSiam_LM2(pl.LightningModule):
         self.avg_loss = 0.
         self.avg_output_std = 0.
         self.collapse_level = 0.
-        
+
 
     def forward(self, x0, x1):
         f0 = self.backbone(x0)
@@ -158,13 +159,8 @@ class SimSiam_LM2(pl.LightningModule):
         w = 0.9
         self.avg_loss = w * self.avg_loss + (1 - w) * loss.item()
         self.avg_output_std = w * self.avg_output_std + (1 - w) * output_std.item()
-
-        self.log('train_loss_ssl', loss)
-        self.log('Avgloss', self.avg_loss)
-        self.log('Avgstd', self.avg_output_std)
-        return {'loss':loss}
-
-    
+        return {'loss':self.avg_loss,'avg_output_std': self.avg_output_std}
+      
     def training_epoch_end(self, outputs):
         # the level of collapse is large if the standard deviation of the l2
         # normalized output is much smaller than 1 / sqrt(dim)
@@ -173,7 +169,7 @@ class SimSiam_LM2(pl.LightningModule):
 
     def validation_step(self, val_batch, batch_idx):
         (x0, x1), _, _ = val_batch
- 
+
         (z0, p0),(z1, p1) = self.forward(x0,x1)
         loss = 0.5 * (self.ce(z0, p1) + self.ce(z1, p0))
         self.log('val_loss', loss)
@@ -187,7 +183,7 @@ class SimSiam_LM2(pl.LightningModule):
 
 model_sim = SimSiam_LM2(backbone,num_ftrs=num_ftrs,proj_hidden_dim=proj_hidden_dim,pred_hidden_dim=pred_hidden_dim,out_dim=out_dim,lr=lr_sim)
 #trainer = pl.Trainer(gpus=no_gpus, strategy='ddp', deterministic=True, max_epochs = _epochs)
-trainer = pl.Trainer(gpus=4 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs = _epochs)
+trainer = pl.Trainer(gpus=1 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs = 200)
 #%%
 trainer.fit(model_sim, datamodule=dm_aug)
 
@@ -197,7 +193,7 @@ backbone_copy2 = copy.deepcopy(backbone)
 torch.save(backbone, "../model/pretrained/backbone_2.ckpt")
 
 # %%
-#use pretrained backbone and finetune 
+#use pretrained backbone and finetune
 transformer1 = Attention(num_classes = 6, n_head=4, nlayers=3)
 head = nn.Sequential(*list(transformer1.children())[-1])
 
@@ -218,6 +214,7 @@ trainer.fit(transfer_model, datamodule = dm16)
 trainer.test(transfer_model, datamodule = dm16)
 
 #test 113 - 116 sagt dass sich nichts verändert 0.77
+
 # %%
 
 from torch import Tensor as tensor
@@ -243,3 +240,4 @@ _loss = torch.stack([x["loss"] for x in outputs]).mean()
         w = 0.9
         self.avg_loss = w * self.avg_loss + (1 - w) * _loss
         self.avg_output_std = w * self.avg_output_std + (1 - w) * output_std.item()
+
