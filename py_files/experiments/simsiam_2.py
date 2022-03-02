@@ -95,14 +95,14 @@ trainer.fit(model, datamodule=dm16)
 trainer.test(model, datamodule=dm16)
 
 # %%
-no_gpus = 4
+no_gpus = 1
 
 transformer = Attention(num_classes = 6, n_head=4, nlayers=3)
 backbone = nn.Sequential(*list(transformer.children())[-2])
 # # %%
 model_sim = SimSiam_LM(backbone,num_ftrs=num_ftrs,proj_hidden_dim=proj_hidden_dim,pred_hidden_dim=pred_hidden_dim,out_dim=out_dim,lr=lr)
 #trainer = pl.Trainer(gpus=no_gpus, strategy='ddp', deterministic=True, max_epochs = _epochs)
-trainer = pl.Trainer(gpus=4 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs = 200)
+trainer = pl.Trainer(gpus=1 if str(device).startswith("cuda") else 0, deterministic=True, max_epochs = 200)
 #%%
 trainer.fit(model_sim, datamodule=dm_aug)
 backbone_copy1 = copy.deepcopy(backbone)
