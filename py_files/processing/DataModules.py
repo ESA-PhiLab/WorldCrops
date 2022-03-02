@@ -88,8 +88,8 @@ class Bavaria1617DataModule(pl.LightningDataModule):
     def setup(self, stage: Optional[str] = None):
 
         # use the full data set and make train test split
-        test_2018 = self.data[self.data.Year == 2018]
-        train_1617 = self.data[self.data.Year != 2018]
+        test_2018 = self.data[self.data.Year == 2017]
+        train_1617 = self.data[self.data.Year == 2016]
 
         #callback function for dataframe cleaning, interpolation etc.
         def func(df):
@@ -279,7 +279,8 @@ class AugmentationExperiments(pl.LightningDataModule):
         else:
             print('Experiment not definend')
 
-        ts_data = Test2016(train, self.feature_list.tolist(), size=10000)
+        #ts_data = Test2016(train, self.feature_list.tolist(), size=10000)
+        ts_data = TSAugmented(train, factor=2, feature_list=self.feature_list.tolist())
 
        # Assign train/val datasets for use in dataloaders
         if stage in (None, "fit"):
