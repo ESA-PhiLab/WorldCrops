@@ -1,5 +1,6 @@
 
-https://user-images.githubusercontent.com/11621580/156671225-11e37d80-9650-4a77-b15c-b7d037c6ebbd.mp4
+<video src='
+https://user-images.githubusercontent.com/11621580/156671225-11e37d80-9650-4a77-b15c-b7d037c6ebbd.mp4' width=180/>
 
 ![ScreenShot](/docs/crops.png) 
 
