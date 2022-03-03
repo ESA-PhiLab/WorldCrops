@@ -18,7 +18,7 @@ The labels for the crop types come from different sources and have been summaris
 | Uzbekistan | < 8196| 2016-2018 | S2 L1C/L2A| cotton, wheat, rice, maize, orchards, vineyards, alfalfa| [[3]](#https://www.nature.com/articles/s41597-020-00591-2)|
 
  
-[<img src="https://user-images.githubusercontent.com/11621580/156671225-11e37d80-9650-4a77-b15c-b7d037c6ebbd.mp4" width="20%">]()
+[<img src="https://github.com/ESA-PhiLab/WorldCrops/blob/main/docs/Data_sphere_small.mp4" width="20%">]()
 
 
 ## Environment setup for Python3
