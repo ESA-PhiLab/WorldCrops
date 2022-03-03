@@ -1,5 +1,5 @@
 ![ScreenShot](/docs/crops.png)
-https://github.com/ESA-PhiLab/WorldCrops/blob/main/docs/Data_sphere_small.mp4
+https://raw.githubusercontent.com/ESA-PhiLab/WorldCrops/main/docs/Data_sphere_small.mp4
 
 # Overview
 This is an aggregation of different crop types and yield data in several regions of the world. The variance in the data should drive the development of new methods and different experiments. The merging of data represents only one part of the project. For each field polygon, a time series of mean values and other statistical properties was created. For example, a field (polygon) is represented by a Sentinel-2 time series of means per field.
