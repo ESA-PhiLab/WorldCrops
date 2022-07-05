@@ -18,6 +18,7 @@ py_files/credentials.py
 py_files/__pycache__/*
 hidden/*
 .vscode/*
+.gitpod.yml
 
 
 #keep folder
