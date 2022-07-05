@@ -104,6 +104,5 @@ target[:,5,:,5] = 1
 np.save('Bavaria_13', {"data": data, "target": target})
 #%%
 data = np.load('Bavaria_13.npy', allow_pickle=True).item()
-# print(data[0])
 print(data['target'].shape)
 
