@@ -1,7 +1,6 @@
 
 ![ScreenShot](/docs/crops.png) 
 
-<video src=https://raw.githubusercontent.com/ESA-PhiLab/WorldCrops/main/docs/embeddings.mp4 width=100/>
 
 
 
