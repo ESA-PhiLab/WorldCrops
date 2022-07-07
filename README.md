@@ -1,13 +1,8 @@
 
-![ScreenShot](/docs/crops.png) 
 
-
-![Crops](https://user-images.githubusercontent.com/11621580/177815096-f5936f2c-7942-4ebe-971a-38afbc2b5471.png)
-
-
-
-https://user-images.githubusercontent.com/11621580/177815426-8973d3bc-cb1c-4930-b841-a03e43d0796d.mp4
-
+<div align="center">
+<img src="https://user-images.githubusercontent.com/11621580/177815096-f5936f2c-7942-4ebe-971a-38afbc2b5471.png" width="250" height="300" /> <img src="https://media.giphy.com/media/dFCkbzISh2IZWLdj7S/giphy.gif" width="250" height="300" /> <img src="https://user-images.githubusercontent.com/11621580/177831311-5aa2a302-3b85-4d8a-af2f-fe01a9531bf0.gif" width="300" height="300">
+</div>
 
 ## Environment setup for Python3
 
@@ -22,10 +17,24 @@ activate it
 install requirements
 
     pip3 install -r requirements.txt 
+    
+change directory
+
     cd src/
+    
+install package  
+
     python setup.py develop 
     (optional) pip install .
-    import selfsupervised
+ 
+ Python example:
+    
+    ```python
+    #import installed package
+    import selfsupervised as ssl
+    #examples for a datamodule
+    ssl.data
+    ```
 
 
 ## Add additional data
@@ -36,7 +45,7 @@ The script 'download.py' uses Sentinel Hub to download Sentinel data. More regio
 
 
     
-## new data sources
+## New data modules for SSL
 
 To include new data, a custom data set or data module must be defined for pytorch lightning.
 (https://pytorch-lightning.readthedocs.io/en/stable/extensions/datamodules.html)
