@@ -1,8 +1,9 @@
 
 ![ScreenShot](/docs/crops.png) 
 
+<video src=https://raw.githubusercontent.com/ESA-PhiLab/WorldCrops/main/docs/embeddings.mp4 width=200/>
 
-https://raw.githubusercontent.com/ESA-PhiLab/WorldCrops/main/docs/embeddings.mp4?width=100&height=100
+
 
 ## Environment setup for Python3
 
@@ -27,9 +28,7 @@ install requirements
 
 The script 'download.py' uses Sentinel Hub to download Sentinel data. More regions are welcome to be added. Configure your layer with Sentinel Hub and add your API keys to credentials.py. The download supports the FisRequest and SentinelHubStatistical from Sentinel Hub. 
 
-
 	python download.py -f ../data/cropdata/CentralAsia/CAWa_CropType_samples.shp -t '{"2018": ["01-01-2018", "30-12-2018"],"2017": ["01-01-2017", "30-12-2017"],"2016": ["01-01-2016", "30-12-2016"]}' -o centralasia 
-
 
 
     
