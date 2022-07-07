@@ -1,9 +1,8 @@
 
 ![ScreenShot](/docs/crops.png) 
 
-[<img src="https://github.com/ESA-PhiLab/WorldCrops/blob/main/docs/embeddings3.mp4" width="50%">](https://github.com/ESA-PhiLab/WorldCrops/blob/main/docs/embeddings3.mp4 "")
 
-
+https://github.com/ESA-PhiLab/WorldCrops/blob/main/docs/embeddings3.mp4?width=100&height=100
 
 ## Environment setup for Python3
 
