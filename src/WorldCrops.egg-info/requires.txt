@@ -15,7 +15,6 @@ dask==2022.6.1
 Py6S==1.9.2
 pyshp==2.3.0
 openpyxl==3.0.10
-
 jupyter==1.0.0
 xarray==2022.3.0
 salem==0.3.7
@@ -28,5 +27,3 @@ torchvision==0.13.0
 lightly==1.2.22
 tqdm==4.56.0
 tsaug==0.2.1
-
-
