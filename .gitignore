@@ -23,6 +23,8 @@ src/selfsupervised/data/yields/__pycache__/*
 src/selfsupervised/data/images/__pycache__/*
 src/selfsupervised/model/__pycache__/*
 src/selfsupervised/processing/__pycache__/*
+src/selfsupervised/download/*
+src/selfsupervised/experiments/*
 
 .env
 
