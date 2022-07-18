@@ -8,27 +8,27 @@ from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 
 
-class Hopfield_v1(nn.Module):
-    def __init__(self, conf):
-        super(Hopfield_v1, self).__init__()
-        self.Wq = nn.Linear(conf['in_dim'],conf['hidden_dim'])
-        self.Wk = nn.Linear(conf['in_dim'],conf['hidden_dim'])
-        self.Wv = nn.Linear(conf['in_dim'],conf['channels'])
-        self.beta = conf['Hopfield_beta']
-        self.soft = nn.Softmax(dim=1)
+# class Hopfield_v1(nn.Module):
+#     def __init__(self, conf):
+#         super(Hopfield_v1, self).__init__()
+#         self.Wq = nn.Linear(conf['in_dim'],conf['hidden_dim'])
+#         self.Wk = nn.Linear(conf['in_dim'],conf['hidden_dim'])
+#         self.Wv = nn.Linear(conf['in_dim'],conf['channels'])
+#         self.beta = conf['Hopfield_beta']
+#         self.soft = nn.Softmax(dim=1)
 
-    def forward(self, R, Y=None):
-        if Y == None: Y=R
-        q = self.Wq(R)
-        k = self.Wk(Y)
-        p = torch.einsum('za,zca->zc', q, k)
-        y = self.soft(self.beta * p)
-        v = self.Wv(Y)
-        out = torch.einsum('zb,zbc->zc', y, v)
-        return out
+#     def forward(self, R, Y=None):
+#         R = R.float()
+#         q = self.Wq(R)
+#         k = self.Wk(Y)
+#         p = torch.einsum('za,zca->zc', q, k)
+#         y = self.soft(self.beta * p)
+#         v = self.Wv(Y)
+#         out = torch.einsum('zb,zbc->zc', y, v)
+#         return out
 
-    def spectrum(self, R, Y):
-        return self.forward(R, Y)
+#     def spectrum(self, R, Y):
+#         return self.forward(R, Y)
 
 
 class Hopfield_v1_Lookup(nn.Module):
@@ -130,105 +130,104 @@ class Hopfield_v1_Classifier(nn.Module):
 
 
 
-class Hopfield_v2_Classifier(nn.Module):
-    def __init__(self, conf):
-        super(Hopfield_v2_Classifier, self).__init__()
-        self.E = nn.Linear(conf['in_dim'], conf['emb_dim'])
-        self.Wq = nn.Linear(conf['emb_dim'],conf['hidden_dim'])
-        self.Wk = nn.Linear(conf['emb_dim'],conf['hidden_dim'])
-        self.beta = conf['Hopfield_beta']
-        self.soft = nn.Softmax(dim=1)
-        self.classifier1 = nn.Sequential(
-            nn.Linear(conf['emb_dim'],int(conf['emb_dim']/2)),
-            nn.Linear(int(conf['emb_dim']/2),conf['total_labels'])
-        )
-        self.classifier2 = nn.Sequential(
-            nn.Linear(conf['emb_dim'],int(conf['emb_dim']/2)),
-            nn.Linear(int(conf['emb_dim']/2),1)
-        )
-        self.softi = nn.Softmax(dim=1)
+# class Hopfield_v2_Classifier(nn.Module):
+#     def __init__(self, conf):
+#         super(Hopfield_v2_Classifier, self).__init__()
+#         self.E = nn.Linear(conf['in_dim'], conf['emb_dim'])
+#         self.Wq = nn.Linear(conf['emb_dim'],conf['hidden_dim'])
+#         self.Wk = nn.Linear(conf['emb_dim'],conf['hidden_dim'])
+#         self.beta = conf['Hopfield_beta']
+#         self.soft = nn.Softmax(dim=1)
+#         self.classifier1 = nn.Sequential(
+#             nn.Linear(conf['emb_dim'],int(conf['emb_dim']/2)),
+#             nn.Linear(int(conf['emb_dim']/2),conf['total_labels'])
+#         )
+#         self.classifier2 = nn.Sequential(
+#             nn.Linear(conf['emb_dim'],int(conf['emb_dim']/2)),
+#             nn.Linear(int(conf['emb_dim']/2),1)
+#         )
+#         self.softi = nn.Softmax(dim=1)
 
-    def forward(self, R, Y=None):
-        R = R.float()
-        print(R.shape)
-        Re = self.E(R)
-        print(Re.shape)
-        q = self.Wq(Re)
-        k = self.Wk(Re)
-        p = torch.einsum('zba,zca->zbc', q, k)
-        out = self.soft(self.beta * p)
-        print(out.shape)
-        exit()
-        pred = self.classifier1(out)
-        pred = torch.einsum('abc->acb', pred)
-        pred = self.classifier2(pred)[:,:,0]
-        return self.softi(pred)
+#     def forward(self, R, Y=None):
+#         R = R.float()
+#         print(R.shape)
+#         Re = self.E(R)
+#         print(Re.shape)
+#         q = self.Wq(Re)
+#         k = self.Wk(Re)
+#         p = torch.einsum('zba,zca->zbc', q, k)
+#         out = self.soft(self.beta * p)
+#         print(out.shape)
+#         exit()
+#         pred = self.classifier1(out)
+#         pred = torch.einsum('abc->acb', pred)
+#         pred = self.classifier2(pred)[:,:,0]
+#         return self.softi(pred)
 
-    def spectrum(self, R, Y):
-        return self.forward(R, Y)
-
-
-### LIBRARY LAYER MULTI HEAD
-class Hopfield_v4_layer(nn.Module):
-    def __init__(self, conf):
-        super(Hopfield_v4_layer, self).__init__()
-        self.conf = conf
-        self.heads = conf['hop_heads']
-        self.Wq = nn.Linear(conf['in_dim'], self.heads*conf['hidden_dim'])
-        self.Wk = nn.Linear(conf['in_dim'], self.heads*conf['hidden_dim'])
-        self.Wv = nn.Linear(conf['in_dim'], self.heads*conf['out_dim'])
-        self.beta = conf['Hopfield_beta']
-        self.soft = nn.Softmax(dim=3)
-        self.Condens = nn.Sequential(
-            nn.Linear(self.heads*conf['in_dim'], int(np.ceil(self.heads/2))*conf['in_dim']),
-            nn.Linear(int(np.ceil(self.heads/2))*conf['in_dim'], conf['in_dim'])
-        )
+#     def spectrum(self, R, Y):
+#         return self.forward(R, Y)
 
 
-    def forward(self, data):
-        emb, Y = data[0], data[1]
-        q = self.Wq(emb)
-        k = self.Wk(Y)
-        v = self.Wv(Y)
-        #                       BATCH     EMBEDDING      HEADS       HIDDEN DIMENSION
-        q = torch.reshape(q, (q.shape[0], q.shape[1], self.heads, self.conf['hidden_dim']))
-        #                       BATCH        HEADS       LENGTH      HIDDEN DIMENSION
-        k = torch.reshape(k, (k.shape[0], self.heads, k.shape[1], self.conf['hidden_dim']))
-        #                       BATCH        HEADS       LENGTH       OUT DIMENSION
-        v = torch.reshape(v, (v.shape[0], self.heads, v.shape[1], self.conf['out_dim']))
-        p = torch.einsum('beza,bzca->bzec', q, k)
-        y = self.soft(self.beta * p)
-        out = torch.einsum('bzea,bzac->bzce', y, v)
-        out = torch.reshape(out, (out.shape[0], self.heads*self.conf['in_dim'], self.conf['emb_dim']))
-        out = torch.einsum('abc->acb', out)
-        out = self.Condens(out)
-        return [out, Y]
+# ### LIBRARY LAYER MULTI HEAD
+# class Hopfield_v4_layer(nn.Module):
+#     def __init__(self, conf):
+#         super(Hopfield_v4_layer, self).__init__()
+#         self.conf = conf
+#         self.heads = conf['hop_heads']
+#         self.Wq = nn.Linear(conf['in_dim'], self.heads*conf['hidden_dim'])
+#         self.Wk = nn.Linear(conf['in_dim'], self.heads*conf['hidden_dim'])
+#         self.Wv = nn.Linear(conf['in_dim'], self.heads*conf['out_dim'])
+#         self.beta = conf['Hopfield_beta']
+#         self.soft = nn.Softmax(dim=3)
+#         self.Condens = nn.Sequential(
+#             nn.Linear(self.heads*conf['in_dim'], int(np.ceil(self.heads/2))*conf['in_dim']),
+#             nn.Linear(int(np.ceil(self.heads/2))*conf['in_dim'], conf['in_dim'])
+#         )
 
-class Hopfield_v4(nn.Module):
-    def __init__(self, conf):
-        super(Hopfield_v4, self).__init__()
-        self.conf = conf
-        self.heads = conf['hop_heads']
-        self.layers = conf['hop_layers']
-        self.E = nn.Linear(1, conf['emb_dim'])
-        self.Hopfield_Layer = nn.Sequential()
-        for l in range(self.layers):
-            self.Hopfield_Layer.add_module(str(l), Hopfield_v4_layer(conf))
-        self.iE = nn.Linear(conf['emb_dim'], 1)
 
-    def forward(self, R, Y=None):
-        if Y == None: Y=R
-        R_e = torch.einsum('ab->ba', R)
-        emb = self.E(R_e[:,:,None])
-        emb = torch.einsum('abc->bca', emb)
-        out = self.Hopfield_Layer([emb, Y])[0]
-        out = torch.einsum('abc->acb', out)
-        out = self.iE(out)#[:,:,0]
-        out = torch.reshape(out, (out.shape[0], -1))
-        return out
+#     def forward(self, data):
+#         emb, Y = data[0], data[1]
+#         q = self.Wq(emb)
+#         k = self.Wk(Y)
+#         v = self.Wv(Y)
+#         #                       BATCH     EMBEDDING      HEADS       HIDDEN DIMENSION
+#         q = torch.reshape(q, (q.shape[0], q.shape[1], self.heads, self.conf['hidden_dim']))
+#         #                       BATCH        HEADS       LENGTH      HIDDEN DIMENSION
+#         k = torch.reshape(k, (k.shape[0], self.heads, k.shape[1], self.conf['hidden_dim']))
+#         #                       BATCH        HEADS       LENGTH       OUT DIMENSION
+#         v = torch.reshape(v, (v.shape[0], self.heads, v.shape[1], self.conf['out_dim']))
+#         p = torch.einsum('beza,bzca->bzec', q, k)
+#         y = self.soft(self.beta * p)
+#         out = torch.einsum('bzea,bzac->bzce', y, v)
+#         out = torch.reshape(out, (out.shape[0], self.heads*self.conf['in_dim'], self.conf['emb_dim']))
+#         out = torch.einsum('abc->acb', out)
+#         out = self.Condens(out)
+#         return [out, Y]
 
-    def spectrum(self, R, Y):
-        return self.forward(R, Y)
+# class Hopfield_v4(nn.Module):
+#     def __init__(self, conf):
+#         super(Hopfield_v4, self).__init__()
+#         self.conf = conf
+#         self.heads = conf['hop_heads']
+#         self.layers = conf['hop_layers']
+#         self.E = nn.Linear(1, conf['emb_dim'])
+#         self.Hopfield_Layer = nn.Sequential()
+#         for l in range(self.layers):
+#             self.Hopfield_Layer.add_module(str(l), Hopfield_v4_layer(conf))
+#         self.iE = nn.Linear(conf['emb_dim'], 1)
+
+#     def forward(self, R, Y):
+#         R_e = torch.einsum('ab->ba', R)
+#         emb = self.E(R_e[:,:,None])
+#         emb = torch.einsum('abc->bca', emb)
+#         out = self.Hopfield_Layer([emb, Y])[0]
+#         out = torch.einsum('abc->acb', out)
+#         out = self.iE(out)#[:,:,0]
+#         out = torch.reshape(out, (out.shape[0], -1))
+#         return out
+
+#     def spectrum(self, R, Y):
+#         return self.forward(R, Y)
 
 
 

@@ -47,9 +47,6 @@ class lightning_wraper(pl.LightningModule):
         self.log("lm_a/val_loss", loss)
         return {"val_loss": loss}
     
-    def spectrum(self, data, base):
-        return self.forward(R, Y).detach().numpy()
-
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(params=self.model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         return optimizer
@@ -79,9 +76,9 @@ def torch_train(num_epochs=10, num_gpus=16):
         max_epochs=num_epochs,
         gpus=num_gpus,
         logger=TensorBoardLogger(save_dir=sname, name=fname),
-        # callbacks=[checkpoint_callback],
+        callbacks=[checkpoint_callback],
         # CAREUL - EARLY STOPPING IS HERE!!!!!!
-        callbacks=[checkpoint_callback, early_stop_callback],
+        # callbacks=[checkpoint_callback, early_stop_callback],
         # callbacks=[tune_callback, checkpoint_callback],
         enable_progress_bar=True)
     trainer.fit(model, train_dataloader, val_dataloader)
@@ -94,11 +91,12 @@ def torch_train(num_epochs=10, num_gpus=16):
 
 #%%
 
-epochs = 2# 6000
+epochs = 300 # 6000
 batch_size = 1
 beta = 10
 channels = 13
-MODEL_NAME = 'Hopfield_v1_Lookup'
+# MODEL_NAME = 'Hopfield_v1_Lookup'
+MODEL_NAME = 'Hopfield_v1'
 # MODEL_NAME = 'Hopfield_v1_LookupClassifier'
 # MODEL_NAME = 'Hopfield_v1_Classifier'
 # MODEL_NAME = 'Hopfield_v2_Classifier'
@@ -108,12 +106,12 @@ model_conf = {
     'LOAD_MODEL_TYPE': 'models',
     'LOAD_MODEL_NAME': MODEL_NAME,
     "channels": channels,
-    "emb_dim": 1,
-    "hop_heads": 1,
-    "hop_layers": 1,
+    "emb_dim": 0,
+    "hop_heads": 0,
+    "hop_layers": 0,
     "hidden_dim": 64,
     "in_dim": 14,
-    "out_dim": 64,
+    "out_dim": 0,
     "total_labels": 6,
     "Hopfield_beta": beta,
     "weight_decay": 2e-6,
@@ -121,11 +119,11 @@ model_conf = {
 }
 
 train_dataloader = get_dataloader(year=[1], batch_size=batch_size)
-val_dataloader = get_dataloader(year=[1], batch_size=batch_size)
+val_dataloader = get_dataloader(year=[2], batch_size=batch_size)
 '''NOTE: If the validation is a different year, the early stopping is triggered fairly quickly it seems.'''
 
 def main():
-    torch_train(num_epochs=epochs, num_gpus=14)
+    torch_train(num_epochs=epochs, num_gpus=1)
 
 if __name__ == '__main__':
     main()

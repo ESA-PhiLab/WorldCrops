@@ -57,8 +57,8 @@ epochs = 600
 batch_size = 1
 beta = 10
 channels = 13
-# MODEL_NAME = 'Hopfield_v3_heads'
-MODEL_NAME = 'Hopfield_v1_Lookup'
+MODEL_NAME = 'Hopfield_v3_heads'
+# MODEL_NAME = 'Hopfield_v1_Lookup'
 # MODEL_NAME = 'Hopfield_v1_Classifier'
 
 model_conf = {
@@ -66,9 +66,9 @@ model_conf = {
     'LOAD_MODEL_TYPE': 'models',
     'LOAD_MODEL_NAME': MODEL_NAME,
     "channels": channels,
-    "emb_dim": 1,
-    "hop_heads": 1,
-    "hop_layers": 1,
+    "emb_dim": 8,
+    "hop_heads": 12,
+    "hop_layers": 2,
     "hidden_dim": 64,
     "in_dim": 14,
     "out_dim": 64,
