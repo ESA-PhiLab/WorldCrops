@@ -94,7 +94,7 @@ def torch_train(num_epochs=10, num_gpus=16):
 
 #%%
 
-epochs = 6000
+epochs = 2# 6000
 batch_size = 1
 beta = 10
 channels = 13
@@ -119,7 +119,6 @@ model_conf = {
     "weight_decay": 2e-6,
     "lr": 2e-5
 }
-
 
 train_dataloader = get_dataloader(year=[1], batch_size=batch_size)
 val_dataloader = get_dataloader(year=[1], batch_size=batch_size)
