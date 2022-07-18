@@ -46,8 +46,8 @@ class lightning_wraper(pl.LightningModule):
         self.log("lm_a/val_loss", loss)
         return {"val_loss": loss}
     
-    def spectrum(self, data, base):
-        return self.forward(R, Y).detach().numpy()
+    # def spectrum(self, data, base):
+    #     return self.forward(R, Y).detach().numpy()
 
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(params=self.model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
@@ -56,6 +56,7 @@ class lightning_wraper(pl.LightningModule):
 epochs = 600
 batch_size = 1
 beta = 10
+channels = 13
 # MODEL_NAME = 'Hopfield_v3_heads'
 MODEL_NAME = 'Hopfield_v1_Lookup'
 # MODEL_NAME = 'Hopfield_v1_Classifier'
@@ -64,12 +65,13 @@ model_conf = {
     'PATH': '/iarai/home/daniel.springer/Projects/InvPro/repo/greens_function/models/hopfield/',
     'LOAD_MODEL_TYPE': 'models',
     'LOAD_MODEL_NAME': MODEL_NAME,
+    "channels": channels,
     "emb_dim": 1,
-    "hop_heads": 2,
-    "hop_layers": 3,
+    "hop_heads": 1,
+    "hop_layers": 1,
     "hidden_dim": 64,
     "in_dim": 14,
-    "out_dim": 13,
+    "out_dim": 64,
     "total_labels": 6,
     "Hopfield_beta": beta,
     "weight_decay": 2e-6,
@@ -77,8 +79,7 @@ model_conf = {
 }
 model = lightning_wraper(model_conf)
 sname = '/iarai/home/daniel.springer/Projects/Hopfield_Crops/Runs_1/'
-fname  = str(MODEL_NAME) + '_layer' + str(model_conf['hop_layers']) + '_emb' + str(model_conf['emb_dim']) + '_heads' + str(model_conf['hop_heads']) + '_hiddendim'+ str(model_conf['hidden_dim']) + '_bs' + str(batch_size) + '_beta' + str(beta) + '/'
-# checkpoint = torch.load(sname+fname+"version_0/checkpoints/epoch=1450-step=62392.ckpt")
+fname  = str(MODEL_NAME) + '_layer' + str(model_conf['hop_layers']) + '_emb' + str(model_conf['emb_dim']) + '_heads' + str(model_conf['hop_heads']) + '_hiddendim'+ str(model_conf['hidden_dim']) + '_outdim'+ str(model_conf['out_dim']) + '_bs' + str(batch_size) + '_beta' + str(beta) + '/'
 checkpoint = torch.load(sname+fname+"last.ckpt")
 model.load_state_dict(checkpoint['state_dict'])
 
