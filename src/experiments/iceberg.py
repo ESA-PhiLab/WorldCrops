@@ -162,8 +162,10 @@ dataloader_test = torch.utils.data.DataLoader(
 # %%
 
 dataloader_train
-
-
+iterator=iter(dataloader_train)
+inputs= next(iterator)
+# %%
+inputs[0][0].shape
 # %%
 
 ################################################################
@@ -178,11 +180,10 @@ channels = cfg["UNet"]['channels']
 dropout = cfg["UNet"]['dropout']
 
 filters=[32, 64, 128, 256]
-_encoder = ssl.model.ResUnetEncoder(channel=channels, filters =filters, dropout = dropout)
-model = ssl.model.SimSiam_Images(_encoder, num_ftrs, proj_hidden_dim, pred_hidden_dim, out_dim)
+_encoder = ssl.model.ResUnetEncoder(channel=3, filters =filters, dropout = dropout)
+model = ssl.model.SimSiam_UNet_Encoder(_encoder, num_ftrs, proj_hidden_dim, pred_hidden_dim, out_dim)
 # %%
 
-model
 
 # %%
 from pytorch_lightning import loggers as pl_loggers
@@ -197,7 +198,6 @@ trainer.fit(model, dataloader_train)
 #########################################
 #use pretrained encoder and finetune with labels
 #########################################
-
 
 fullmodel = ssl.model.UNet_Transfer(backbone=_encoder, filters = filters, dropout = dropout)
 trainer = pl.Trainer(gpus=cfg["pretraining"]['gpus'], deterministic=True, max_epochs = cfg["finetuning"]['epochs'], logger=tb_logger)

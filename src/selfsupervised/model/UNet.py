@@ -232,10 +232,10 @@ class ResUnetDecoder(nn.Module):
 
     def forward(self, x):
         #x ist a list of embeddings from encoder
-        x1 = x[1]
-        x2 = x[2]
-        x3 = x[3]
-        x4 = x[4]
+        x1 = x[0]
+        x2 = x[1]
+        x3 = x[2]
+        x4 = x[3]
         
         x5 = torch.cat([x4, x3], dim=1)
         x6 = self.up1(x5) + self.res3(x4)
