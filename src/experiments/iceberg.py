@@ -96,24 +96,6 @@ for i in range(1, columns*rows +1):
 plt.show()
 
 
-# %%
-import cv2
-def load_simpson_faces(path, start, end):
-    imgs = []
-    simpson_files = os.listdir(path)
-    
-    for img in simpson_files[start:end]:
-        image = cv2.imread(path+img)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        image = np.array(image)/255.0
-        #image = image - np.mean(image)
-        imgs.append(image)
-    return torch.from_numpy(np.array(imgs)).float()
-
-#imgs = load_simpson_faces('../../data/simpsons/', 0, 30)
-#Y = imgs.clone().reshape(30,-1).unsqueeze(0) 
-#plt.imshow(Y.squeeze(0)[0].reshape(200,200), cmap='gray')
-
 
 # %%
 
@@ -185,12 +167,22 @@ dataloader_train
 # %%
 
 ################################################################
-# Model SimSiam with Resnet
+# Model SimSiam 
 ###################################################################
 # pretrained resnet
 resnet = torchvision.models.resnet18()
 backbone = nn.Sequential(*list(resnet.children())[:-1])
 model = ssl.model.SimSiam_Images(backbone, num_ftrs, proj_hidden_dim, pred_hidden_dim, out_dim)
+
+channels = cfg["UNet"]['channels']
+dropout = cfg["UNet"]['dropout']
+
+filters=[32, 64, 128, 256]
+_encoder = ssl.model.ResUnetEncoder(channel=channels, filters =filters, dropout = dropout)
+model = ssl.model.SimSiam_Images(_encoder, num_ftrs, proj_hidden_dim, pred_hidden_dim, out_dim)
+# %%
+
+model
 
 # %%
 from pytorch_lightning import loggers as pl_loggers
@@ -202,9 +194,13 @@ trainer = pl.Trainer(gpus=cfg["pretraining"]['gpus'], deterministic=True, max_ep
 #fit the first time with one augmentation
 trainer.fit(model, dataloader_train)
 # %%
+#########################################
+#use pretrained encoder and finetune with labels
+#########################################
 
-#Ab hier vortrainiertes backbone rausnehmen und einen MLP header draufsetzen und mit labels finetunen
 
-
-
+fullmodel = ssl.model.UNet_Transfer(backbone=_encoder, filters = filters, dropout = dropout)
+trainer = pl.Trainer(gpus=cfg["pretraining"]['gpus'], deterministic=True, max_epochs = cfg["finetuning"]['epochs'], logger=tb_logger)
+#fit the first time with one augmentation
+trainer.fit(fullmodel, dataloader_train)
 # %%

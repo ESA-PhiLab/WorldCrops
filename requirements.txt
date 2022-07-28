@@ -28,5 +28,6 @@ torchvision==0.13.0
 lightly==1.2.22
 tqdm==4.56.0
 tsaug==0.2.1
+#opencv-python==4.6.0.66
 
 

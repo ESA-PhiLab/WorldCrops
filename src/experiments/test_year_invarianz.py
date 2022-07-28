@@ -1,9 +1,7 @@
+# %%
 # compare the crop type classification of RF and SimSiam
 import sys
 import os
-#sys.path.append('./model')
-#sys.path.append('..')
-
 import math
 
 import torch.nn as nn
@@ -25,7 +23,8 @@ import pytorch_lightning as pl
 import copy
 import selfsupervised
 from pytorch_lightning import loggers as pl_loggers
-
+from selfsupervised.processing import utils
+utils.seed_torch()
 import yaml
 
 with open("../../config/croptypes/param_config.yaml", "r") as ymlfile:
@@ -36,9 +35,6 @@ batch_size_pre = cfg["pretraining"]['batch_size']
 batch_size_fine = cfg["finetuning"]['batch_size']
 
 
-# %%
-from selfsupervised.processing import utils
-utils.seed_torch()
 
 
 # %%
@@ -51,7 +47,31 @@ dm_crops1 = selfsupervised.data.croptypes.AugmentationExperiments(data_dir = '..
 
 
 # %%
+#create artificail sin cos dataset with 3 classes
 
+import numpy as np
+seed = 12345512
+np.random.seed(seed)
+
+n = 14
+x_data = np.linspace(0, 14, num=n)
+y_data = np.cos(x_data) 
+y_data2 = np.sin(x_data)
+y_data3 = np.sin(x_data) +0.3
+
+
+# %%
+plt.plot(y_data)
+plt.plot(y_data2)
+plt.plot(y_data3)
+# %%
+
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(x_data, y_data, test_size=0.2, random_state=42)
+
+# %%
+
+X_train
 
 
 # %%

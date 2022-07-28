@@ -216,7 +216,7 @@ class Attention_Transfer(pl.LightningModule):
             num_classes: amount of target classes
             d_model: default = 64 #number of expected features
             backbone: pretrained encoder
-            tranfer: if false -> don't update parameters of backbone (only new linear head) 
+            finetune: if false -> don't update parameters of backbone (only new linear head) 
                      if true > update all parameters (backbone + new head)
         """
 
