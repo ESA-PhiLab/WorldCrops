@@ -48,7 +48,7 @@ The script 'download.py' uses Sentinel Hub to download Sentinel data. More regio
 ## New data modules for SSL
 
 To include new data, a custom data set or data module must be defined for pytorch lightning.
-(https://pytorch-lightning.readthedocs.io/en/stable/extensions/datamodules.html)
+(https://pytorch-lightning.readthedocs.io/)
 
 ## References
 
@@ -56,3 +56,4 @@ To include new data, a custom data set or data module must be defined for pytorc
 [2] Radiant Earth Foundation, https://www.radiant.earth/ <br/>
 [3] Remelgado, R., Zaitov, S., Kenjabaev, S. et al. A crop type dataset for consistent land cover classification in Central Asia. Sci Data 7, 250 (2020). https://doi.org/10.1038/s41597-020-00591-2 <br/>
 [4] Chair of Plant Nutrition, TUM, https://www.pe.wzw.tum.de/
+[5] Lightly, https://www.lightly.ai/
