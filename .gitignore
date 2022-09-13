@@ -4,14 +4,17 @@
 env/
 env_wc/*
 **/logs/*/
+models/*
 
-#data/S1_unlabeled
+
+data/iceberg/*
 data/cropdata/France/*
 data/cropdata/Kenya/ref_african_crops_kenya_01_labels.tar.gz
 data/cropdata/Kenya/ref_african_crops_kenya_01_source.tar.gz
 data/cropdata/Kenya/ref_african_crops_kenya_01_labels/*
 data/cropdata/Kenya/ref_african_crops_kenya_01_source/*
 data/cropdata/Bavaria/yields/backup/*
+data/
 
 src/selfsupervised/processing/__pycache__/*
 src/selfsupervised/__pycache__/*
@@ -26,6 +29,11 @@ src/selfsupervised/processing/__pycache__/*
 src/selfsupervised/download/*
 src/selfsupervised/experiments/*
 
+src/experiments/iceberg_testbed.py
+src/experiments/test.py
+src/experiments/test_supervised.py
+src/experiments/test_unsupervised.pygit st
+
 .env
 
 py_files/credentials.py
@@ -39,3 +47,33 @@ hidden/*
 #keep folder
 #!data/cropdata/France/.gitkeep 
 #!data/cropdata/Kenya/.gitkeep 
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST

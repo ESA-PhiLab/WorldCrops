@@ -48,7 +48,7 @@ class SimSiam_Images(pl.LightningModule):
         #print(x0.shape)
         f0 = self.backbone(x0).flatten(start_dim=1)
         f1 = self.backbone(x1).flatten(start_dim=1)
-        #print(f0.shape)
+        print(f0.shape)
 
         z0 = self.projection(f0)
         z1 = self.projection(f1)
@@ -143,7 +143,7 @@ class SimSiam_Images(pl.LightningModule):
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, self.epochs)
         return [optimizer], [scheduler]
 
-class SimSiam_UNet_Encoder(pl.LightningModule):
+class SimSiam_UNet(pl.LightningModule):
     def __init__(self, backbone = nn.Module, num_ftrs=64, proj_hidden_dim=14, 
     pred_hidden_dim=14, out_dim=14, lr=0.02, weight_decay=5e-4,momentum=0.9, epochs = 10, label = False):
         super().__init__()
@@ -158,10 +158,10 @@ class SimSiam_UNet_Encoder(pl.LightningModule):
         self.backbone = backbone
         self.model_type = 'SimSiam_LM'
         self.projection = lightly.models.modules.heads.ProjectionHead([
-            (num_ftrs, proj_hidden_dim, nn.BatchNorm1d(proj_hidden_dim), nn.ReLU()),
+            (num_ftrs*num_ftrs, proj_hidden_dim, nn.BatchNorm1d(proj_hidden_dim), nn.ReLU()),
             (proj_hidden_dim, out_dim, nn.BatchNorm1d(out_dim), None)
         ])
-        self.prediction = SimSiamPredictionHead(out_dim,pred_hidden_dim,out_dim)
+        self.prediction = lightly.models.modules.heads.SimSiamPredictionHead(out_dim,pred_hidden_dim,out_dim)
 
         # parameters for logging
         self.avg_loss = 0.
@@ -171,12 +171,13 @@ class SimSiam_UNet_Encoder(pl.LightningModule):
         
 
     def forward(self, x0, x1):
-        print(x0[3].shape)
-        print(x0[2].shape)
-        print(x0[0].shape)
-
-        f0 = self.backbone(x0).flatten(start_dim=1)
-        f1 = self.backbone(x1).flatten(start_dim=1)
+        #print("Input Sim1:",x0.shape)
+        f0 = self.backbone(x0)
+        f0 = f0[4].flatten(start_dim=1)
+        #print("After backbone Sim2:",f0.shape)
+        f1 = self.backbone(x1)
+        f1 = f1[4].flatten(start_dim=1)
+        
 
         z0 = self.projection(f0)
         z1 = self.projection(f1)
@@ -268,3 +269,4 @@ class SimSiam_UNet_Encoder(pl.LightningModule):
                                 momentum=self.momentum, weight_decay=self.weight_decay)
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, self.epochs)
         return [optimizer], [scheduler]
+ 
