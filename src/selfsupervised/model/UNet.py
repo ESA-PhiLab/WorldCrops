@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import pytorch_lightning as pl
+from sklearn.metrics import accuracy_score
 
 class depthwise_separable_conv(nn.Module):
     def __init__(self, nin, kernels_per_layer, nout):
@@ -304,10 +305,78 @@ class UNet_Transfer(pl.LightningModule):
         return optimizer
 
     def test_step(self, test_batch, batch_idx):
-        pass
+        x, y = test_batch
+        y_pred = self.forward(x)
+        loss = self.ce(y_pred, y)
+        #self.log('train_loss', loss, on_step = True, on_epoch = True, prog_bar=True, logger=True)
+        self.logger.experiment.add_scalar('test_loss', loss, global_step=self.global_step)
+        y_true = y.detach()
+        return {'test_loss' : loss, 'y_pred' : y_pred, 'y_true' : y}
 
     def test_step_end(self, outputs):
-        pass
+        return outputs
 
     def test_epoch_end(self, outputs):
-        pass
+
+        y_true_list = list()
+        y_pred_list = list()
+
+        for item in outputs:
+            y_true_list.append(item['y_true'])
+            y_pred_list.append(item['y_pred'])
+        
+        print(len(y_pred_list))
+
+        #acc = accuracy_score(torch.cat(y_true_list).cpu(),torch.cat(y_pred_list).cpu())
+        #Overall accuracy
+        #self.log('OA',round(acc,2), logger=True)
+
+    def evaluate_performance(y_true, y_pred):
+
+        pred_areas=[]
+        true_areas=[]
+        for i in range(len(y_true)):
+            prediction=y_pred[i, :,:]
+            berg_samples=prediction[y_true[i]==1]
+            background_samples=prediction[y_true[i]==0]
+            TP= sum(berg_samples)
+            FP= sum(background_samples)
+            FN= len(berg_samples)-sum(berg_samples)
+            TN= len(background_samples)-sum(background_samples)
+            
+            pred_areas.append(sum(y_pred[i, :,:].flatten()))
+            true_areas.append(sum(y_true[i].flatten()))
+
+        true_areas=np.array(true_areas)
+        pred_areas=np.array(pred_areas)
+
+        flat_pred=y_pred.flatten()
+        val_arr=np.concatenate(y_true, axis=0 )
+        flat_true=val_arr.flatten()
+
+        berg_samples=flat_pred[flat_true==1]
+        background_samples=flat_pred[flat_true==0]
+
+        TP= sum(berg_samples)
+        FP= sum(background_samples)
+        FN= len(berg_samples)-sum(berg_samples)
+        TN= len(background_samples)-sum(background_samples)
+        
+        # dice
+        dice=2*TP/(2*TP+FP+FN)
+
+        print('overall accuracy')
+        print((TP+TN)/(TP+TN+FP+FN)*100)
+        print('false pos rate')
+        print(FP/(TN+FP)*100)
+        print('false neg rate')
+        print(FN/(TP+FN)*100)
+        print('area deviations')
+        print((pred_areas-true_areas)/true_areas*100)
+        print('abs mean error in area')
+        print(np.mean(abs((pred_areas-true_areas)/true_areas))*100)
+        print('area bias')
+        print(np.mean((pred_areas-true_areas)/true_areas)*100)
+        print('f1')
+        print(dice)
+  

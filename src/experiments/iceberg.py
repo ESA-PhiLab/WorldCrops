@@ -32,6 +32,114 @@ utils.seed_torch()
 
 
 ################################################################
+## Helper functions
+################################################################
+import tqdm 
+import cv2 as cv 
+import copy
+def zero_div(x, y):
+    return x / y if y else 0
+
+def evaluate_performance(y_true, y_pred):
+
+        pred_areas=[]
+        true_areas=[]
+        for i in range(len(y_true)):
+            prediction=y_pred[i, :,:]
+            berg_samples=prediction[y_true[i]==1]
+            background_samples=prediction[y_true[i]==0]
+            TP= sum(berg_samples)
+            FP= sum(background_samples)
+            FN= len(berg_samples)-sum(berg_samples)
+            TN= len(background_samples)-sum(background_samples)
+            
+            pred_areas.append(sum(y_pred[i, :,:].flatten()))
+            true_areas.append(sum(y_true[i].flatten()))
+
+        true_areas=np.array(true_areas)
+        pred_areas=np.array(pred_areas)
+
+        flat_pred=y_pred.flatten()
+        val_arr=np.concatenate(y_true, axis=0 )
+        flat_true=val_arr.flatten()
+
+        berg_samples=flat_pred[flat_true==1]
+        background_samples=flat_pred[flat_true==0]
+
+        TP= sum(berg_samples)
+        FP= sum(background_samples)
+        FN= len(berg_samples)-sum(berg_samples)
+        TN= len(background_samples)-sum(background_samples)
+        
+        # dice
+        dice=zero_div(2*TP,(2*TP+FP+FN))
+
+        print('overall accuracy')
+        print(zero_div((TP+TN),(TP+TN+FP+FN)*100))
+        print('false pos rate')
+        print(zero_div(FP,(TN+FP)*100))
+        print('false neg rate')
+        print(zero_div(FN ,(TP+FN)*100) )
+        print('area deviations')
+        print((pred_areas-true_areas)/true_areas*100)
+        print('abs mean error in area')
+        print(np.mean(abs((pred_areas-true_areas)/true_areas))*100)
+        print('area bias')
+        print(np.mean((pred_areas-true_areas)/true_areas)*100)
+        print('f1')
+        print(dice)
+        
+def test_function( model , data):
+    model.eval()
+
+    with torch.no_grad():
+        losses = list()
+        y_true_list = list()
+        y_pred_list = list()
+        y_score_list = list()
+
+        with tqdm.tqdm(enumerate(my_test_dataloader), total=len(my_test_dataloader), leave=True) as iterator:
+            for idx, batch in iterator:
+                x, y_true = batch
+                pred = model.forward(x)
+                criterion = nn.BCEWithLogitsLoss()
+                loss = criterion(pred, y_true)
+                iterator.set_description(f"test loss={loss:.2f}")
+                losses.append(loss)
+                y_true_list.append(y_true)
+                y_pred_list.append(pred)
+
+        y_true_list = torch.cat(y_true_list).squeeze().numpy()
+        y_pred_list = torch.cat(y_pred_list).squeeze().numpy()
+
+        # masking
+        for i in range(len(y_pred_list)):
+            pred=y_pred_list[i]
+            pred[y_pred_list[i]==1]=0
+            y_pred_list[i]=pred
+        
+        
+        # threshold and largest connected component
+        thres = 65
+        connectivity = 4 
+
+        y_pred=copy.deepcopy(np.squeeze(y_pred_list))
+        for i in range(len(y_pred_list)):
+            src=y_pred_list[i]
+
+            image1copy = np.uint8(src*255)
+
+            ret, thresh = cv.threshold(image1copy,thres,255,cv.THRESH_BINARY)
+
+            (numLabels, labels, stats, centroids) = cv.connectedComponentsWithStats(thresh, connectivity, cv.CV_32S)
+            max_label, max_size = max([(i, stats[i, cv.CC_STAT_AREA]) for i in range(1, numLabels)], key=lambda x: x[1])
+
+            y_pred[i] = (labels == max_label).astype("uint8")
+  
+
+    return y_true_list, y_pred
+
+################################################################
 ## Configuration 
 ################################################################
 
@@ -140,6 +248,75 @@ print(np.shape(x_train))
 print(np.shape(y_train))
 print(np.shape(train_mask))
 
+x_val = []
+y_val = []
+val_mask=[]
+
+for filename in sorted(glob.glob(path_to_datadir + 'PNG_val/S1*.png')):
+   
+   # split filename to find the matching files
+   name=re.search('/S1_(.*).png', filename).group(1)
+   name_part1=re.search('/S1_(.*)99_', filename).group(1)
+   name_part2=re.search('_99_(.*).png', filename).group(1)
+
+   # load input image
+   im = Image.open(filename)
+   x_val.append(np.array(im))
+   
+   # load corresponding ground truth
+   filename2= path_to_datadir + 'GT_val/GT_'+ name + '.png'
+   gt = Image.open(filename2)
+   y_val.append(np.array(gt))
+  
+   # load corresponding mask (no satellite coverage)
+   filename3= path_to_datadir + 'Mask_val/NaN_mask_'+ name_part1 + name_part2 + '.png'
+   mask = Image.open(filename3)
+   val_mask.append(np.array(mask))
+
+x_val=np.array(x_val)
+y_val=np.array(y_val)
+val_mask=np.array(val_mask)
+
+print('Validation data sizes (should be 26 x 256 x 256 for all of them)')
+print(np.shape(x_val))
+print(np.shape(y_val))
+print(np.shape(val_mask))
+
+x_test = []
+y_test = []
+test_mask=[]
+
+for filename in sorted(glob.glob(path_to_datadir + 'PNG_test/S1*.png')):
+   
+   # split filename to find the matching files
+   name=re.search('/S1_(.*).png', filename).group(1)
+   name_part1=re.search('/S1_(.*)99_', filename).group(1)
+   name_part2=re.search('_99_(.*).png', filename).group(1)
+
+   # load input image
+   im = Image.open(filename)
+   x_test.append(np.array(im))
+   
+   # load corresponding ground truth
+   filename2=path_to_datadir + 'GT_test/GT_'+ name + '.png'
+   gt = Image.open(filename2)
+   y_test.append(np.array(gt))
+  
+   # load corresponding mask (no satellite coverage)
+   filename3=path_to_datadir + 'Mask_test/NaN_mask_'+ name_part1 + name_part2 + '.png'
+   mask = Image.open(filename3)
+   test_mask.append(np.array(mask))
+
+
+x_test=np.array(x_test)
+y_test=np.array(y_test)
+test_mask=np.array(test_mask)
+
+print('Test data sizes (should be 24 x 256 x 256 for all of them)')
+print(np.shape(x_test))
+print(np.shape(y_test))
+print(np.shape(test_mask))
+
 
 # we use the LighltyDataset for the pretraining
 dataset_train= lightly.data.LightlyDataset(
@@ -165,11 +342,34 @@ dataloader_train_unsupervised = torch.utils.data.DataLoader(
 
 
 # create dataloader with x and y for finetuning
+#train
 tensor_x = torch.Tensor(np.repeat(x_train[:,np.newaxis, :, :], 3, axis=1)) # transform to torch tensor
 tensor_y = torch.Tensor(y_train[:,np.newaxis, :, :])
 
 my_dataset = torch.utils.data.TensorDataset(tensor_x,tensor_y)
 my_dataloader = torch.utils.data.DataLoader(my_dataset, 
+    batch_size=batch_size_fine,
+    shuffle=True,
+    drop_last=False,
+    num_workers=num_workers) 
+
+#validate
+val_x = torch.Tensor(np.repeat(x_val[:,np.newaxis, :, :], 3, axis=1)) # transform to torch tensor
+val_y = torch.Tensor(y_val[:,np.newaxis, :, :])
+
+my_val_dataset = torch.utils.data.TensorDataset(val_x,val_y)
+my_val_dataloader = torch.utils.data.DataLoader(my_val_dataset, 
+    batch_size=batch_size_fine,
+    shuffle=True,
+    drop_last=False,
+    num_workers=num_workers) 
+
+#test
+test_x = torch.Tensor(np.repeat(x_test[:,np.newaxis, :, :], 3, axis=1)) # transform to torch tensor
+test_y = torch.Tensor(y_test[:,np.newaxis, :, :])
+
+my_test_dataset = torch.utils.data.TensorDataset(test_x,test_y)
+my_test_dataloader = torch.utils.data.DataLoader(my_test_dataset, 
     batch_size=batch_size_fine,
     shuffle=True,
     drop_last=False,
@@ -232,13 +432,28 @@ torch.save(_encoder, path_to_modeldir)
 
 
 backbone_pretrain = torch.load(path_to_modeldir)
+tb_logger_fine = pl_loggers.TensorBoardLogger(save_dir=path_to_logdir)
 
 filters=[32, 64, 128, 256]
 #include the pretrained encoder!
 model_finetune = ssl.model.UNet_Transfer(backbone=backbone_pretrain)
-trainer = pl.Trainer(gpus=cfg["pretraining"]['gpus'], deterministic=True, max_epochs = cfg["pretraining"]['epochs'] , logger=tb_logger, log_every_n_steps=log_interval_fine)
+trainer = pl.Trainer(gpus=cfg["finetuning"]['gpus'], deterministic=True, max_epochs = cfg["finetuning"]['epochs'] , logger=tb_logger_fine, log_every_n_steps=log_interval_fine)
 #fit the first time with one augmentation
 trainer.fit(model_finetune, my_dataloader)
+
+# %%
+
+# %%
+y_true_list, y_pred = test_function( model_finetune , my_test_dataloader)
+
+# %%
+evaluate_performance(y_true_list, y_pred)
+
+
+# %%
+
+# %%
+
 
 # %%
 

@@ -2,7 +2,7 @@
 pretraining:
   batch_size: 50
   learning_rate: 0.0016612
-  epochs: 30
+  epochs: 1
   gpus: 0
   out_dim: 512
   pred_hidden_dim: 128
@@ -15,7 +15,7 @@ pretraining:
 finetuning:
   batch_size: 50
   learning_rate: 0.0016612
-  epochs: 30
+  epochs: 1
   gpus: 0
   log_interval: 5
 
