@@ -96,7 +96,6 @@ def test_function( model , data):
         losses = list()
         y_true_list = list()
         y_pred_list = list()
-        y_score_list = list()
 
         with tqdm.tqdm(enumerate(my_test_dataloader), total=len(my_test_dataloader), leave=True) as iterator:
             for idx, batch in iterator:
