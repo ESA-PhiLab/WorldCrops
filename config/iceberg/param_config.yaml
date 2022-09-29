@@ -1,8 +1,8 @@
 #pretraining with SimSiam
 pretraining:
-  batch_size: 50
-  learning_rate: 0.0016612
-  epochs: 1
+  batch_size: 1
+  learning_rate: 0.001 
+  epochs: 10
   gpus: 0
   out_dim: 512
   pred_hidden_dim: 128
@@ -13,15 +13,15 @@ pretraining:
   log_interval: 5
 
 finetuning:
-  batch_size: 50
-  learning_rate: 0.0016612
+  batch_size: 1
+  learning_rate: 0.001
   epochs: 1
   gpus: 0
   log_interval: 5
 
 UNet:
   # define the number of channels in the input, number of classes,
-  channels: 3
+  channels: 1
   num_classes: 1
   dropout: 0.3
 
