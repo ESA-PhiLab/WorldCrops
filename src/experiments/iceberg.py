@@ -89,13 +89,17 @@ def evaluate_performance(y_true, y_pred):
         print('f1')
         print(dice)
         
-def test_function( model , data):
+def test_function( model , data, mask):
     model.eval()
 
     with torch.no_grad():
         losses = list()
         y_true_list = list()
         y_pred_list = list()
+        
+        fig=plt.figure(figsize=(24, 16))
+        plt.gray()
+        z=1;
 
         with tqdm.tqdm(enumerate(my_test_dataloader), total=len(my_test_dataloader), leave=True) as iterator:
             for idx, batch in iterator:
@@ -107,6 +111,12 @@ def test_function( model , data):
                 losses.append(loss)
                 y_true_list.append(y_true)
                 y_pred_list.append(pred)
+                
+                ax1 = fig.add_subplot(4,6,z)  
+                plt.imshow(np.squeeze(pred))
+                plt.xticks([0, 256], " ")
+                plt.yticks([0, 256], " ")
+                z=z+1
 
         y_true_list = torch.cat(y_true_list).squeeze().numpy()
         y_pred_list = torch.cat(y_pred_list).squeeze().numpy()
@@ -114,7 +124,7 @@ def test_function( model , data):
         # masking
         for i in range(len(y_pred_list)):
             pred=y_pred_list[i]
-            pred[y_pred_list[i]==1]=0
+            pred[mask[i]==1]=0
             y_pred_list[i]=pred
         
         
@@ -316,6 +326,22 @@ print(np.shape(x_test))
 print(np.shape(y_test))
 print(np.shape(test_mask))
 
+# normalise data to 0-1
+x_train=x_train.astype(np.double)
+x_train=x_train/255
+y_train=y_train.astype(np.double)
+
+x_val=x_val.astype(np.double)
+x_val=x_val/255
+y_val=y_val.astype(np.double)
+
+x_test=x_test.astype(np.double)
+x_test=x_test/255
+y_test=y_test.astype(np.double)
+
+x_train_unsup=x_train_unsup.astype(np.double)
+x_train_unsup=x_train_unsup/255
+
 
 # we use the LighltyDataset for the pretraining
 dataset_train= lightly.data.LightlyDataset(
@@ -333,7 +359,7 @@ train_dev = torch.utils.data.ConcatDataset([dataset_train, dataset_unlabeled])
 dataloader_train_unsupervised = torch.utils.data.DataLoader(
     train_dev,
     batch_size=batch_size_pre,
-    shuffle=True,
+    shuffle=False,
     collate_fn=collate_fn,
     drop_last=True,
     num_workers=num_workers
@@ -348,7 +374,7 @@ tensor_y = torch.Tensor(y_train[:,np.newaxis, :, :])
 my_dataset = torch.utils.data.TensorDataset(tensor_x,tensor_y)
 my_dataloader = torch.utils.data.DataLoader(my_dataset, 
     batch_size=batch_size_fine,
-    shuffle=True,
+    shuffle=False,
     drop_last=False,
     num_workers=num_workers) 
 
@@ -359,7 +385,7 @@ val_y = torch.Tensor(y_val[:,np.newaxis, :, :])
 my_val_dataset = torch.utils.data.TensorDataset(val_x,val_y)
 my_val_dataloader = torch.utils.data.DataLoader(my_val_dataset, 
     batch_size=batch_size_fine,
-    shuffle=True,
+    shuffle=False,
     drop_last=False,
     num_workers=num_workers) 
 
@@ -404,7 +430,37 @@ inputs[0].shape
 
 # %%
 
-# %%
+###################################################################
+# Model UNet without augmentation as baseline
+###################################################################
+
+from torch.optim.lr_scheduler import ReduceLROnPlateau
+
+filters=[32, 64, 128, 256]
+tb_logger = pl_loggers.TensorBoardLogger(save_dir=path_to_logdir)
+
+_encoder = ResUnetEncoder(channel=channels, filters =filters, dropout = dropout)
+model = UNet_Transfer(lr = learning_rate, backbone=_encoder,  dropout = dropout, filters =filters, batch_size  = batch_size_pre, finetune= False)
+
+trainer = pl.Trainer(gpus=cfg["pretraining"]['gpus'], deterministic=True, max_epochs = cfg["pretraining"]['epochs'], logger=tb_logger, log_every_n_steps=log_interval)
+
+# this is how you could use reducting learning rates, but val_loss is empty
+
+#optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+#scheduler = ReduceLROnPlateau(optimizer, 'min', factor=0.5)
+#trainer = pl.Trainer(gpus=cfg["pretraining"]['gpus'], deterministic=True, max_epochs = 1, logger=tb_logger, log_every_n_steps=log_interval)
+
+#for epoch in range(10):
+ # trainer.fit(model, my_dataloader) # epochs should be set to one above!
+  #val_loss = trainer.validate(dataloaders=my_val_dataloader)
+  #print(val_loss['val_loss'])
+  #scheduler.step(val_loss)
+
+trainer.fit(model, my_dataloader, my_val_dataloader)
+
+#save model
+torch.save(model, path_to_modeldir + 'iceberg_baseline.ckpt')
+
 
 ###################################################################
 # Model SimSiam --- Pretraining
@@ -441,15 +497,23 @@ trainer = pl.Trainer(gpus=cfg["finetuning"]['gpus'], deterministic=True, max_epo
 trainer.fit(model_finetune, my_dataloader)
 
 # %%
-
-# %%
-y_true_list, y_pred = test_function( model_finetune , my_test_dataloader)
+y_true_list, y_pred = test_function(model , my_test_dataloader, test_mask)
 
 # %%
 evaluate_performance(y_true_list, y_pred)
 
+# plot results
+idxs=range(24)
+fig=plt.figure(figsize=(24, 16))
+plt.gray()
+z=1;
+for i in idxs:
+  ax1 = fig.add_subplot(4,6,z)  
+  plt.imshow(np.squeeze(y_pred[i, :, :]))
+  plt.xticks([0, 256], " ")
+  plt.yticks([0, 256], " ")
+  z=z+1
 
-# %%
 
 # %%
 
