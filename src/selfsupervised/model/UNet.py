@@ -150,7 +150,7 @@ class ResUnetDecoder(nn.Module):
             nn.Conv2d(args[0], args[0], kernel_size=3, padding='same'),
             nn.ReLU(),
             nn.Conv2d(args[0], 1, kernel_size=1, padding='same'),
-            nn.Sigmoid(),
+            # nn.Sigmoid(), # done by BCEWithLogitsLoss
         )
 
 
@@ -206,7 +206,7 @@ class ResUnet(nn.Module):
             nn.Conv2d(filters[0], filters[0], kernel_size=3, padding='same'),
             nn.ReLU(),
             nn.Conv2d(filters[0], 1, kernel_size=1, padding='same'),
-            nn.Sigmoid(),
+            #nn.Sigmoid(), # done by BCEWithLogitsLoss
         )
 
 
@@ -289,12 +289,33 @@ class UNet_Transfer(pl.LightningModule):
         y_true_list = list()
         y_pred_list = list()
         #add here accuracy
+        
+        # tried to log and return loss
+        # avg_loss = torch.stack([x['loss'] for x in outputs]).mean()  
+        # logging using tensorboard logger
+        # self.logger.experiment.add_scalar("Loss/Train", avg_loss, self.current_epoch)
+        #epoch_dictionary={'loss': avg_loss}
+        #return epoch_dictionary
 
-    def validation_step(self, val_batch, batch_idx):
-        pass
+    def validation_step(self, val_batch, batch_idx):     
+        x, y = val_batch
+        y_pred = self.forward(x)
+        loss = self.ce(y_pred, y)
+        self.logger.experiment.add_scalar('val_loss', loss, global_step=self.global_step)
+        y_true = y.detach()
+        return {'val_loss' : loss}
+        #pass
+        
+    def validation_step_end(self, outputs):
+        return outputs
 
     def validation_epoch_end(self, outputs):
-        pass
+        avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()  
+        avg_loss=float(avg_loss)
+        dict_={'val_loss' : avg_loss}
+        print(dict_)
+        return dict_
+        #pass
 
     def configure_optimizers(self):
         if self.finetune:
