@@ -368,7 +368,7 @@ dataloader_train_unsupervised = torch.utils.data.DataLoader(
 
 # create dataloader with x and y for finetuning
 #train
-tensor_x = torch.Tensor(np.repeat(x_train[:,np.newaxis, :, :], 3, axis=1)) # transform to torch tensor
+tensor_x = torch.Tensor(np.repeat(x_train[:,np.newaxis, :, :], channels, axis=1)) # transform to torch tensor
 tensor_y = torch.Tensor(y_train[:,np.newaxis, :, :])
 
 my_dataset = torch.utils.data.TensorDataset(tensor_x,tensor_y)
@@ -379,7 +379,7 @@ my_dataloader = torch.utils.data.DataLoader(my_dataset,
     num_workers=num_workers) 
 
 #validate
-val_x = torch.Tensor(np.repeat(x_val[:,np.newaxis, :, :], 3, axis=1)) # transform to torch tensor
+val_x = torch.Tensor(np.repeat(x_val[:,np.newaxis, :, :], channels, axis=1)) # transform to torch tensor
 val_y = torch.Tensor(y_val[:,np.newaxis, :, :])
 
 my_val_dataset = torch.utils.data.TensorDataset(val_x,val_y)
@@ -390,7 +390,7 @@ my_val_dataloader = torch.utils.data.DataLoader(my_val_dataset,
     num_workers=num_workers) 
 
 #test
-test_x = torch.Tensor(np.repeat(x_test[:,np.newaxis, :, :], 3, axis=1)) # transform to torch tensor
+test_x = torch.Tensor(np.repeat(x_test[:,np.newaxis, :, :], channels, axis=1)) # transform to torch tensor
 test_y = torch.Tensor(y_test[:,np.newaxis, :, :])
 
 my_test_dataset = torch.utils.data.TensorDataset(test_x,test_y)
