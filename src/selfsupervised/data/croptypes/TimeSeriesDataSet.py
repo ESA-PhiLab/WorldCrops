@@ -308,45 +308,7 @@ class TimeSeriesPhysical(Dataset):
         y = y[1]
         return torch.tensor(y, dtype=torch.long)
 
-class TimeSeriesDataSet(Dataset):
-    '''
-    :param data: dataset of type pandas.DataFrame
-    :param target_col: targeted column name
-    :param feature_list: list with target features
-    '''
 
-    def __init__(self, data, feature_list, target_col):
-        self.xy = data
-        self.target_col = target_col
-        self.feature_list = feature_list
-
-    def __len__(self):
-        return len(self.xy.id.unique())
-
-    def __getitem__(self, field_idx):
-
-        x = self.xy[self.xy.id == field_idx][self.feature_list].values
-        y = self.xy[self.xy.id == field_idx][self.target_col].values
-
-        torchx = self.x2torch(x)
-        torchy = self.y2torch(y)
-
-        return torchx, torchy
-        #return torchx, torchy
-        
-    def x2torch(self, x):
-        '''
-        return torch for x
-        '''
-        #nb_obs, nb_features = self.x.shape
-        return torch.from_numpy(x).type(torch.FloatTensor)
-
-    def y2torch(self, y):
-        '''
-        return torch for y
-        '''
-        y = y[1]
-        return torch.tensor(y, dtype=torch.long)
 
 
 class TSDataSet(Dataset):
