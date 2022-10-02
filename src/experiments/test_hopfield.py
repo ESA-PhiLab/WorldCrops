@@ -128,8 +128,8 @@ class HopfieldSampling(nn.Module):
 
 
 #%% How to use.
-beta = 1
-t_steps = 14
+beta = 0.3
+t_steps = 11
 channels = 13
 H = HopfieldSampling(t_steps, channels)
 
@@ -141,9 +141,27 @@ print(mapped_sample.shape)
 # %%
 features =['NDVI_mean']
 unknown = bavaria_data[bavaria_data.Year == 2018][features].to_numpy()
-known = bavaria_data[bavaria_data.Year != 2018][features].to_numpy()
+known = bavaria_data[bavaria_data.Year == 2017][features].to_numpy()
+
+fields_unknown = len(bavaria_data[bavaria_data.Year == 2018]['id'].unique())
+fields_known = len(bavaria_data[bavaria_data.Year == 2017]['id'].unique())
 # %%
-unknown.reshape()
+unknown = unknown.reshape( fields_unknown, 11 , 1 )
+known = known.reshape( fields_unknown, 11 , 1 )
+
 # %%
-bavaria_data[bavaria_data.Year == 2018]
+unknown.shaeper
+
+# %%
+H = HopfieldSampling(11, 1)
+mapped_sample = H(torch.from_numpy(unknown), torch.from_numpy(known), beta) 
+
+# %%
+field=6
+plt.plot(mapped_sample[field],'b')
+plt.plot(unknown[field],'r')
+plt.plot(known[field],'y')
+
+# %%
+
 # %%
