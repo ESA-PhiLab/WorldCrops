@@ -326,6 +326,35 @@ print(np.shape(x_test))
 print(np.shape(y_test))
 print(np.shape(test_mask))
 
+x_unlabeled = []
+unlabeled_mask=[]
+
+for filename in sorted(glob.glob(path_to_datadir + 'PNG_unlabeled/S1*.png')):
+   
+   # split filename to find the matching files
+   name_part1=re.search('/S1_(.*)99_', filename).group(1)
+   name_part2=re.search('_99_(.*).png', filename).group(1)
+
+   # load input image
+   im = Image.open(filename)
+   x_unlabeled.append(np.array(im))
+  
+   # load corresponding mask (no satellite coverage)
+   filename3=path_to_datadir + 'Mask_unlabeled/NaN_mask_'+ name_part1 + name_part2 + '.png'
+   mask = Image.open(filename3)
+   unlabeled_mask.append(np.array(mask))
+
+x_unlabeled=np.array(x_unlabeled)
+unlabeled_mask=np.array(unlabeled_mask)
+
+x_train_unsup=np.concatenate((x_train, x_unlabeled), axis=0)
+train_unsup_mask=np.concatenate((train_mask, unlabeled_mask), axis=0)
+
+print('Unsupervised training data sizes (Labeled training data + unlabeled data; should be 275 x 256 x 256 for all of them)')
+print(np.shape(x_train_unsup))
+print(np.shape(train_unsup_mask))
+
+
 # normalise data to 0-1
 x_train=x_train.astype(np.double)
 x_train=x_train/255
