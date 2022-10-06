@@ -53,7 +53,7 @@ To include new data, a custom data set or data module must be defined for pytorc
 ## Citation
 These data sets include yields and crop types and were introduced in following publications:
 
-	@article{MARSZALEK2022106777,
+	@article{Data1,
 	title = {Prediction of multi-year winter wheat yields at the field level with satellite and climatological data},
 	journal = {Computers and Electronics in Agriculture},
 	volume = {194},
@@ -65,7 +65,7 @@ These data sets include yields and crop types and were introduced in following p
 	author = {Michael Marszalek and Marco Körner and Urs Schmidhalter},
 	}
 
-	@article{article,
+	@article{Data2,
 	author = {Marszalek, Michael and Saux, B. and Mathieu, P.-P and Nowakowski, Artur and Springer, Daniel},
 	year = {2022},
 	month = {05},
