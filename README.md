@@ -51,9 +51,7 @@ To include new data, a custom data set or data module must be defined for pytorc
 (https://pytorch-lightning.readthedocs.io/)
 
 ## Citation
-These data sets have been introduced in several publications.
-
-Yields:
+These data sets include yields and crop types and were introduced in following publications:
 
 	@article{MARSZALEK2022106777,
 	title = {Prediction of multi-year winter wheat yields at the field level with satellite and climatological data},
@@ -66,8 +64,6 @@ Yields:
 	url = {https://www.sciencedirect.com/science/article/pii/S0168169922000941},
 	author = {Michael Marszalek and Marco Körner and Urs Schmidhalter},
 	}
-
-Crop types:
 
 	@article{article,
 	author = {Marszalek, Michael and Saux, B. and Mathieu, P.-P and Nowakowski, Artur and Springer, Daniel},
