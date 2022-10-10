@@ -50,6 +50,32 @@ The script 'download.py' uses Sentinel Hub to download Sentinel data. More regio
 To include new data, a custom data set or data module must be defined for pytorch lightning.
 (https://pytorch-lightning.readthedocs.io/)
 
+## Citation
+These data sets include yields and crop types and were introduced in following publications:
+
+	@article{Data1,
+	title = {Prediction of multi-year winter wheat yields at the field level with satellite and climatological data},
+	journal = {Computers and Electronics in Agriculture},
+	volume = {194},
+	pages = {106777},
+	year = {2022},
+	issn = {0168-1699},
+	doi = {https://doi.org/10.1016/j.compag.2022.106777},
+	url = {https://www.sciencedirect.com/science/article/pii/S0168169922000941},
+	author = {Michael Marszalek and Marco Körner and Urs Schmidhalter},
+	}
+
+	@article{Data2,
+	author = {Marszalek, Michael and Saux, B. and Mathieu, P.-P and Nowakowski, Artur and Springer, Daniel},
+	year = {2022},
+	month = {05},
+	pages = {1327-1333},
+	title = {SELF-SUPERVISED LEARNING – A WAY TO MINIMIZE TIME AND EFFORT FOR PRECISION AGRICULTURE?},
+	volume = {XLIII-B3-2022},
+	journal = {ISPRS - International Archives of the Photogrammetry Remote Sensing and Spatial Information Sciences},
+	doi = {10.5194/isprs-archives-XLIII-B3-2022-1327-2022}
+	}
+
 ## References
 
 [1] Breizhcrops, https://breizhcrops.org <br/>
