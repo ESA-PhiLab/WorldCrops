@@ -46,6 +46,13 @@ out_dim = cfg["pretraining"]['out_dim']
 lr_pre =  cfg["pretraining"]['learning_rate']
 epochs_pre = cfg["pretraining"]['epochs']
 _gpu = cfg["pretraining"]['gpus']
+# %%
+#%%
+
+
+#%%
+
+# %%
 
 
 # %%
@@ -95,6 +102,9 @@ bavaria_data
 import torch
 from torch import nn
 import numpy as np
+import matplotlib.pyplot as plt
+
+
 
 class HopfieldSampling(nn.Module):
    '''
@@ -115,6 +125,7 @@ class HopfieldSampling(nn.Module):
        sample: [#Samples, TimeSteps, Channels]
        mapped_sample: [#Samples, TimeSteps, Channels]
        '''
+
        base = torch.flatten(base, start_dim=1, end_dim=2)
        sample = torch.flatten(sample, start_dim=1, end_dim=2)
        Q = sample
@@ -122,46 +133,147 @@ class HopfieldSampling(nn.Module):
        V = base
        p = torch.einsum('ac,dc->ad', Q, K)
        p = self.Softmax(beta * p)
+       print(p)
        mapped_sample = torch.einsum('ac,cb->ab', p, V)
        mapped_sample = self.unflat(mapped_sample)
        return mapped_sample
 
+#H = HopfieldSampling(t_steps, channels)
 
 #%% How to use.
 beta = 0.3
-t_steps = 11
+t_steps = 14
 channels = 13
-H = HopfieldSampling(t_steps, channels)
+
+test = HopfieldSampling(t_steps, channels)
 
 base = torch.zeros((3,14,13))           # 3 examples of unknown year
 sample = torch.zeros((10,14,13))        # 10 samples of known year
-mapped_sample = H(base, sample, beta)   # creates 10 fake samples
+mapped_sample = test(base, sample, beta)   # creates 10 fake samples
 
 print(mapped_sample.shape)
 # %%
-features =['NDVI_mean']
-unknown = bavaria_data[bavaria_data.Year == 2018][features].to_numpy()
-known = bavaria_data[bavaria_data.Year == 2017][features].to_numpy()
+feature = 'NDVI_mean'
+time_steps = 11
+year = 2018
 
-fields_unknown = len(bavaria_data[bavaria_data.Year == 2018]['id'].unique())
-fields_known = len(bavaria_data[bavaria_data.Year == 2017]['id'].unique())
+def getCroptype(data, feature, type, year, time_steps):
+    features =[feature]
+    target = data[(data.Year == year) & (data.NC == type)]
+    base = target[features].to_numpy().reshape( len(target['id'].unique()), time_steps , len(features) )
+    #choosen_ids = [ random.choice(bavaria_data[(bavaria_data.Year == year) & (bavaria_data.NC == type)].id.to_list())  for x in range(5) ]
+    #base = bavaria_data.loc[bavaria_data['id'].isin(choosen_ids)]
+    #base = base[feature].to_numpy().reshape( len(base['id'].unique()), time_steps , len(features) )
+    return base
+
+def getall2018(data, feature,  year, time_steps):
+    features =[feature]
+    target = data[(data.Year == year) ]
+    base = target[features].to_numpy().reshape( len(target['id'].unique()), time_steps , len(features) )
+    #choosen_ids = [ random.choice(bavaria_data[(bavaria_data.Year == year) & (bavaria_data.NC == type)].id.to_list())  for x in range(5) ]
+    #base = bavaria_data.loc[bavaria_data['id'].isin(choosen_ids)]
+    #base = base[feature].to_numpy().reshape( len(base['id'].unique()), time_steps , len(features) )
+    return base
 # %%
-unknown = unknown.reshape( fields_unknown, 11 , 1 )
-known = known.reshape( fields_unknown, 11 , 1 )
+#zutun base samples müssen immer gleich bleiben
+# vllt R2 einfuehren um mit allen aus 2018 zu vergleichen ?
+# schauen ob ein sample abfragen mehr variation bringt?
+#es werden sovile sample in mapped erzeugt wie man für known einbringt
+#ich würde sagen auf einer seite hopfield und auf anderer 
+
+croptype = 1
+import random
+
+known = bavaria_data[(bavaria_data.Year == 2016) & (bavaria_data.NC == croptype)][feature].to_numpy()
+fields_known = len(bavaria_data[(bavaria_data.Year == 2016) & (bavaria_data.NC == croptype)]['id'].unique())
+known = known.reshape( fields_known, 11 , 1 )
+#known = known[6,:,:].reshape( 1, 11 , 1 )
+
+base = getCroptype( bavaria_data, feature, croptype, year, time_steps)
+H = HopfieldSampling( time_steps, 1 )
+# %%
+mapped_sample = H(torch.from_numpy(base), torch.from_numpy(known), 5) 
+
+for i in range(4):
+    plt.plot( mapped_sample[i],'r')
+    plt.plot( base[i],'b')
+    plt.plot( known[i],'y')
+# %%
+base = getCroptype( bavaria_data, feature, croptype, year, time_steps)
+for i in range(90):
+    plt.plot( base[i],'r')
+
+# %% 
+#compare against all from 2018
+base = getall2018( bavaria_data, feature, year, time_steps)
+mapped_sample = H(torch.from_numpy(base), torch.from_numpy(known), 5) 
+for i in range(4):
+    plt.plot( mapped_sample[i],'r')
+    plt.plot( base[i],'b')
+    plt.plot( known[i],'y')
+# %%
+
+from scipy.stats import pearsonr
+
+r, p = pearsonr(known, base)
+r
+# %%
+mapped_sample.shape
 
 # %%
-unknown.shaeper
+
+target_df.head()
+
 
 # %%
-H = HopfieldSampling(11, 1)
-mapped_sample = H(torch.from_numpy(unknown), torch.from_numpy(known), beta) 
-
-# %%
-field=6
+field=0
 plt.plot(mapped_sample[field],'b')
 plt.plot(unknown[field],'r')
 plt.plot(known[field],'y')
 
 # %%
+#ok was will ich tun
+#als base kommen 2% und 5%
+#generiere die augmented daten und vergleiche visuel mit 2018.
 
+
+
+
+
+
+# %%
+crop0 = bavaria_data[(bavaria_data.Year == 2018) & (bavaria_data.NC == 0)]
+crop1 = bavaria_data[(bavaria_data.Year == 2018) & (bavaria_data.NC == 1)]
+crop2 = bavaria_data[(bavaria_data.Year == 2018) & (bavaria_data.NC == 2)]
+crop3 = bavaria_data[(bavaria_data.Year == 2018) & (bavaria_data.NC == 3)]
+crop4 = bavaria_data[(bavaria_data.Year == 2018) & (bavaria_data.NC == 4)]
+crop5 = bavaria_data[(bavaria_data.Year == 2018) & (bavaria_data.NC == 5)]
+# %%
+len0 = len(crop0['id'].unique())
+len1 = len(crop1['id'].unique())
+len2 = len(crop2['id'].unique())
+len3 = len(crop3['id'].unique())
+len4 = len(crop4['id'].unique())
+len5 = len(crop5['id'].unique())
+
+
+for i in range(len1):
+    #plt.plot(  crop0[features].to_numpy().reshape( len0, 11 , 1 )[i],'r')
+    #plt.plot(  crop1[features].to_numpy().reshape( len1, 11 , 1 )[i],'r')
+    #plt.plot(  crop2[features].to_numpy().reshape( len2, 11 , 1 )[i] ,'b')
+    plt.plot(  crop3[features].to_numpy().reshape( len3, 11 , 1 )[i] ,'y')
+    plt.plot(  crop4[features].to_numpy().reshape( len4, 11 , 1 )[i] ,'orange')
+    plt.plot(  crop5[features].to_numpy().reshape( len5, 11 , 1 )[i] ,'black')
+# %%
+
+
+plt.plot( np.mean( crop0[features].to_numpy().reshape( len1, 11 , 1 ) , axis=0),'r')
+plt.plot( np.mean( crop1[features].to_numpy().reshape( len1, 11 , 1 ) , axis=0),'r')
+plt.plot( np.mean( crop2[features].to_numpy().reshape( len1, 11 , 1 ) , axis=0),'b')
+plt.plot( np.mean( crop3[features].to_numpy().reshape( len1, 11 , 1 ) , axis=0),'y')
+plt.plot( np.mean( crop4[features].to_numpy().reshape( len1, 11 , 1 ) , axis=0),'orange')
+plt.plot(np.mean( crop5[features].to_numpy().reshape( len3, 11 , 1 ) , axis=0),'black')
+
+# %%
+plt.plot( np.mean( crop1[features].to_numpy().reshape( len1, 11 , 1 ) , axis=0),'r')
 # %%
