@@ -25,7 +25,6 @@ change directory
 install package  
 
     python setup.py develop 
-    (optional) pip install .
  
  Python example:
     
