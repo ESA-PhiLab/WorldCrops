@@ -10,7 +10,6 @@ scikit-learn==1.1.1
 contextily==1.2.0
 breizhcrops==0.0.4.1
 tqdm==4.57.0
-pytorch-lightning==1.8.6
 radiant-mlhub==0.4.1
 dask==2022.6.1
 Py6S==1.9.2
