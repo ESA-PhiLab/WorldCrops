@@ -11,7 +11,6 @@ from lightly.models.utils import batch_shuffle
 from lightly.models.utils import batch_unshuffle
 from lightly.models.utils import deactivate_requires_grad
 from lightly.models.utils import update_momentum
-from lightly.utils import BenchmarkModule
 import math
 from lightly.models.modules.heads import SimSiamPredictionHead
 from lightly.models.modules.heads import SimSiamProjectionHead
