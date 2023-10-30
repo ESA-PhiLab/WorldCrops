@@ -1,9 +1,7 @@
-
-from shapely import wkt
-from pyproj import Geod
-import shapely
-import pyproj
 import geopandas as gpd
+import shapely
+from pyproj import Geod
+from shapely import wkt
 
 
 class GeodataFrameFilter:

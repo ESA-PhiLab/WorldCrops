@@ -1,22 +1,15 @@
 # %%
-from geodataframefilter import *
-from sentinelhub import SentinelHubStatistical, DataCollection, CRS, BBox, bbox_to_dimensions, Geometry, SHConfig, parse_time, parse_time_interval, SentinelHubStatisticalDownloadClient
-from credentials import *
-import seaborn as sns
-import numpy as np
-import matplotlib.pyplot as plt
 import geopandas as gpd
+import matplotlib.pyplot as plt
 import pandas as pd
-from collections import defaultdict
-import datetime as dt
-import json
-%matplotlib inline
-
+from credentials import config
+from geodataframefilter import GeodataFrameFilter
+from sentinelhub import (CRS, DataCollection, Geometry, SentinelHubStatistical,
+                         SentinelHubStatisticalDownloadClient, parse_time)
 
 # %%
 # Load data for central asia
-centralasia = gpd.read_file(
-    "../data/cropdata/Bavaria/Test_area.shp")
+centralasia = gpd.read_file("../data/cropdata/Bavaria/Test_area.shp")
 
 centralasia.to_crs(epsg=4326, inplace=True)
 print("GPD INFO:", centralasia.describe())
@@ -24,7 +17,6 @@ print("GPD INFO:", centralasia.describe())
 # filter out small fields < 1 hectare and Multipolygons
 gpd_filtered = GeodataFrameFilter(centralasia, 0, True)
 gpd_filtered = gpd_filtered.filter()
-
 
 gpd_filtered.set_crs(epsg=4326, inplace=True)
 gpd_filtered.to_crs(epsg=3857, inplace=True)
@@ -85,14 +77,10 @@ aggregation = SentinelHubStatistical.aggregation(
     evalscript=ndvi_evalscript,
     time_interval=yearly_time_interval,
     aggregation_interval='P1D',
-    resolution=(10, 10)
-)
+    resolution=(10, 10))
 
-input_data = SentinelHubStatistical.input_data(
-    DataCollection.SENTINEL2_L2A,
-    maxcc=1
-)
-
+input_data = SentinelHubStatistical.input_data(DataCollection.SENTINEL2_L2A,
+                                               maxcc=1)
 
 histogram_calculations = {
     "ndvi": {
@@ -108,22 +96,21 @@ histogram_calculations = {
 
 ndvi_requests = []
 
-
 for geo_shape in gpd_filtered.geometry.values:
-    request = SentinelHubStatistical(
-        aggregation=aggregation,
-        input_data=[input_data],
-        geometry=Geometry((geo_shape), crs=CRS(gpd_filtered.crs)),
-        calculations=histogram_calculations,
-        config=config
-    )
-    #rgb_stats = request.get_data(redownload=True)[0]
+    request = SentinelHubStatistical(aggregation=aggregation,
+                                     input_data=[input_data],
+                                     geometry=Geometry(
+                                         (geo_shape),
+                                         crs=CRS(gpd_filtered.crs)),
+                                     calculations=histogram_calculations,
+                                     config=config)
+    # rgb_stats = request.get_data(redownload=True)[0]
     ndvi_requests.append(request)
 
-
 # %%
-download_requests = [ndvi_request.download_list[0]
-                     for ndvi_request in ndvi_requests]
+download_requests = [
+    ndvi_request.download_list[0] for ndvi_request in ndvi_requests
+]
 client = SentinelHubStatisticalDownloadClient(config=config)
 ndvi_stats = client.download(download_requests)
 
@@ -173,9 +160,9 @@ def stats_to_df(stats_data):
 
 ndvi_dfs = [stats_to_df(polygon_stats) for polygon_stats in ndvi_stats]
 
-
 # %%
-for df, land_type in zip(ndvi_dfs, gpd_filtered['NC_ant'].values, gpd_filtered.year.values):
+for df, land_type in zip(ndvi_dfs, gpd_filtered['NC_ant'].values,
+                         gpd_filtered.year.values):
     df['land_type'] = land_type
 ndvi_df = pd.concat(ndvi_dfs)
 # %%
@@ -190,22 +177,17 @@ fig, ax = plt.subplots(figsize=(15, 8))
 for idx, land_type in enumerate(gpd_filtered['NC_ant'].values):
     series = ndvi_df[ndvi_df['land_type'] == land_type]
 
-    series.plot(
-        ax=ax,
-        x='interval_from',
-        y='bands_NDVI_mean',
-        color=f'C{idx}',
-        label=land_type
-    )
+    series.plot(ax=ax,
+                x='interval_from',
+                y='bands_NDVI_mean',
+                color=f'C{idx}',
+                label=land_type)
 
-    ax.fill_between(
-        series.interval_from.values,
-        series['bands_NDVI_mean'] - series['bands_NDVI_stDev'],
-        series['bands_NDVI_mean'] + series['bands_NDVI_stDev'],
-        color=f'C{idx}',
-        alpha=0.3
-    )
-
+    ax.fill_between(series.interval_from.values,
+                    series['bands_NDVI_mean'] - series['bands_NDVI_stDev'],
+                    series['bands_NDVI_mean'] + series['bands_NDVI_stDev'],
+                    color=f'C{idx}',
+                    alpha=0.3)
 
 # %%
 gpd_filtered.head()

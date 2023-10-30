@@ -1,3 +1,2 @@
-from .utils import *
 from .lightly_helper import *
-
+from .utils import *

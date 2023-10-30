@@ -1,23 +1,13 @@
-import pandas as pd
-import contextily as ctx
-import matplotlib.pyplot as plt
-import breizhcrops
-import torch
-import seaborn as sns
-import numpy as np
-import pandas as pd
-import geopandas as gpd
-from breizhcrops import BreizhCrops
-from breizhcrops.datasets.breizhcrops import BANDS as allbands
 import os
-from radiant_mlhub import Dataset, client
 import tarfile
 from pathlib import Path
-from credentials import *
 
+from breizhcrops import BreizhCrops
+from radiant_mlhub import Dataset
 
 # download French data set with BreizhCrops
 # https://colab.research.google.com/drive/1i0M_X5-ytFhF0NO-FjhKiqnraclSEIb0#scrollTo=4CVAlHY6OhAK
+
 
 def raw_transform(input_timeseries):
     return input_timeseries
@@ -31,19 +21,20 @@ def france_download():
         for _region in regions:
             BreizhCrops(region=_region, transform=raw_transform, level="L1C")
             BreizhCrops(region=_region, transform=raw_transform, level="L2A")
-            #region_2A = BreizhCrops(region=_region, transform=raw_transform, level="L2A")
+            # region_2A = BreizhCrops(region=_region, transform=raw_transform, level="L2A")
 
             # region_1C.download_geodataframe()
             # region_1C.download_h5_database()
         print('France downloaded')
     except Exception as e:
+        print("Error:", e)
         pass
 
 
 def kenya_download():
     dataset = Dataset.fetch('ref_african_crops_kenya_01')
 
-    #print(f'ID: {dataset.id}')
+    # print(f'ID: {dataset.id}')
     print(f'Title: {dataset.title}')
     # print('Collections:')
     for collection in dataset.collections:
@@ -79,19 +70,15 @@ _root, filename = _root.rsplit('/', 1)
 print('Root:', _root)
 
 # create directory structure
-dic_struct = [
-    '/data/cropdata/France',
-    '/data/cropdata/Kenya'
-]
+dic_struct = ['/data/cropdata/France', '/data/cropdata/Kenya']
 
 for path in dic_struct:
     print(path)
     try:
-        os.mkdir(_root+path)
+        os.mkdir(_root + path)
     except OSError as e:
         if e.errno != 17:
             print("Error:", e)
-
 
 for path in dic_struct:
     os.chdir(_root + path)
@@ -110,8 +97,8 @@ for path in dic_struct:
             kenya_download()
 
         else:
-            _labels = Path(
-                _root + path + '/ref_african_crops_kenya_01_labels.tar.gz')
+            _labels = Path(_root + path +
+                           '/ref_african_crops_kenya_01_labels.tar.gz')
             if not _labels.is_file():
                 kenya_download()
             else:

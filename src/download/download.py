@@ -1,19 +1,19 @@
 # %%
-import sys
 import argparse
+import json
+import os
+import sys
 from pathlib import Path
+from uuid import uuid4
+
 import geopandas as gpd
 import pandas as pd
-from uuid import uuid4
-import json
-from sentinelhub.time_utils import parse_time
-from sentinelhub import FisRequest, BBox, Geometry, CRS, DataCollection
-
-from geodataframefilter import *
-import credentials
-from credentials import *
-from download_helper import *
-from sentinelhub import SentinelHubStatistical, DataCollection, CRS, BBox, bbox_to_dimensions, Geometry, SHConfig, parse_time, parse_time_interval, SentinelHubStatisticalDownloadClient
+from credentials import SHUB_LAYER_NAME1, SHUB_LAYER_NAME2, config
+from download_helper import (add_cloud_info, evalscript, fis_data_to_dataframe,
+                             stats_to_df)
+from geodataframefilter import GeodataFrameFilter
+from sentinelhub import (CRS, DataCollection, FisRequest, Geometry,
+                         SentinelHubStatistical)
 
 # %%
 
@@ -23,10 +23,9 @@ def download_via_shs(args):
     output_path = args.output
     target = args.target
 
-    #print(target, type(target))
+    # print(target, type(target))
     # t1 = args.t1
     # t2 = args.t2
-    multipoly = args.multipoly
     area = args.area
     # proc = args.proc
     # index = args.index
@@ -58,13 +57,13 @@ def download_via_shs(args):
     gpd_filtered = GeodataFrameFilter(_data, area, True)
     gpd_filtered = gpd_filtered.filter()
 
-    #print('Length:', len(gpd_filtered))
+    # print('Length:', len(gpd_filtered))
 
     # filter geodataframe with years
     _tmp = pd.DataFrame()
     for year in year_list:
-        _tmp = pd.concat(
-            [_tmp, gpd_filtered.loc[(gpd_filtered.year == year)]], axis=0)
+        _tmp = pd.concat([_tmp, gpd_filtered.loc[(gpd_filtered.year == year)]],
+                         axis=0)
     gpd_filtered = _tmp
 
     gpd_filtered['id'] = gpd_filtered.index.to_series().map(
@@ -73,24 +72,21 @@ def download_via_shs(args):
     gpd_filtered.set_crs(epsg=4326, inplace=True)
     gpd_filtered.to_crs(epsg=3857, inplace=True)
 
-    gpd_filtered.to_file(
-        output_path + "/labels_new.shp")
+    gpd_filtered.to_file(output_path + "/labels_new.shp")
 
     gpd_filtered = gpd_filtered.head(2)
 
     if 'year' not in gpd_filtered.columns:
-        print('Year column in geodataframe does not exists..Please add column year')
+        print(
+            'Year in geodataframe does not exists..Please add column year'
+        )
         sys.exit()
 
     input_data_L2A = SentinelHubStatistical.input_data(
-        DataCollection.SENTINEL2_L2A,
-        maxcc=1
-    )
+        DataCollection.SENTINEL2_L2A, maxcc=1)
 
     input_data_L1C = SentinelHubStatistical.input_data(
-        DataCollection.SENTINEL2_L1C,
-        maxcc=1
-    )
+        DataCollection.SENTINEL2_L1C, maxcc=1)
 
     histogram_calculations = {
         "ndvi": {
@@ -108,8 +104,8 @@ def download_via_shs(args):
     for (idx, row) in gpd_filtered.iterrows():
 
         if str(row.year) in year_list:
-            time_interval = (
-                str(timespan[str(row.year)][0]), str(timespan[str(row.year)][1]))
+            time_interval = (str(timespan[str(row.year)][0]),
+                             str(timespan[str(row.year)][1]))
         else:
             continue
 
@@ -117,26 +113,21 @@ def download_via_shs(args):
             evalscript=evalscript,
             time_interval=time_interval,
             aggregation_interval='P1D',
-            resolution=(10, 10)
-        )
+            resolution=(10, 10))
 
         request_L1C = SentinelHubStatistical(
             aggregation=aggregation,
             input_data=[input_data_L1C],
             geometry=Geometry((row.geometry), crs=CRS(gpd_filtered.crs)),
             calculations=histogram_calculations,
-            config=config
-        )
+            config=config)
 
         request_L2A = SentinelHubStatistical(
             aggregation=aggregation,
             input_data=[input_data_L2A],
             geometry=Geometry((row.geometry), crs=CRS(gpd_filtered.crs)),
             calculations=histogram_calculations,
-            config=config
-        )
-
-        #client = SentinelHubStatisticalDownloadClient(config=config, n_interval_retries=3)
+            config=config)
 
         try:
 
@@ -176,7 +167,6 @@ def download_via_fis(args):
     target = args.target
     # t1 = args.t1
     # t2 = args.t2
-    multipoly = args.multipoly
     area = args.area
     # proc = args.proc
     # index = args.index
@@ -208,13 +198,13 @@ def download_via_fis(args):
     gpd_filtered = GeodataFrameFilter(_data, area, True)
     gpd_filtered = gpd_filtered.filter()
 
-    #print('Length:', len(gpd_filtered))
+    # print('Length:', len(gpd_filtered))
 
     # filter geodataframe with years
     _tmp = pd.DataFrame()
     for year in year_list:
-        _tmp = pd.concat(
-            [_tmp, gpd_filtered.loc[(gpd_filtered.year == year)]], axis=0)
+        _tmp = pd.concat([_tmp, gpd_filtered.loc[(gpd_filtered.year == year)]],
+                         axis=0)
     gpd_filtered = _tmp
 
     gpd_filtered['id'] = gpd_filtered.index.to_series().map(
@@ -223,46 +213,47 @@ def download_via_fis(args):
     gpd_filtered.set_crs(epsg=4326, inplace=True)
     gpd_filtered.to_crs(epsg=3857, inplace=True)
 
-    gpd_filtered.to_file(
-        output_path + "/labels_new.shp")
+    gpd_filtered.to_file(output_path + "/labels_new.shp")
 
-    #gpd_filtered = gpd_filtered.head(2)
+    # gpd_filtered = gpd_filtered.head(2)
 
     if 'year' not in gpd_filtered.columns:
-        print('Year column in geodataframe does not exists..Please add column year')
+        print(
+            'Year in geodataframe does not exists..Please add column year'
+        )
         sys.exit()
 
     for (idx, row) in gpd_filtered.iterrows():
 
         if str(row.year) in year_list:
-            time_interval = (
-                str(timespan[str(row.year)][0]), str(timespan[str(row.year)][1]))
+            time_interval = (str(timespan[str(row.year)][0]),
+                             str(timespan[str(row.year)][1]))
         else:
             continue
 
         fis_request_L1C = FisRequest(
             data_collection=DataCollection.SENTINEL2_L1C,
-            layer=credentials.SHUB_LAYER_NAME1,
+            layer=SHUB_LAYER_NAME1,
             geometry_list=[
-                Geometry((row.geometry), crs=CRS(gpd_filtered.crs))],
+                Geometry((row.geometry), crs=CRS(gpd_filtered.crs))
+            ],
             time=time_interval,
             resolution='10m',
             data_folder=output_path + '/jsondata',
             config=config,
-            maxcc=1
-        )
+            maxcc=1)
 
         fis_request_L2A = FisRequest(
             data_collection=DataCollection.SENTINEL2_L2A,
-            layer=credentials.SHUB_LAYER_NAME2,
+            layer=SHUB_LAYER_NAME2,
             geometry_list=[
-                Geometry((row.geometry), crs=CRS(gpd_filtered.crs))],
+                Geometry((row.geometry), crs=CRS(gpd_filtered.crs))
+            ],
             time=time_interval,
             resolution='10m',
             data_folder=output_path + '/jsondata',
             config=config,
-            maxcc=1
-        )
+            maxcc=1)
 
         # channel 0: clouds, channel 1: NDVI, channel 2: NDWI
         fis_data = fis_request_L1C.get_data(redownload=True)
@@ -295,43 +286,70 @@ def download_via_fis(args):
 
     # save merged dataframe with same id
     L1C_df.reset_index(drop=True, inplace=True)
-    L1C_df.to_excel(
-        output_path + '/timeseries_L1C.xlsx')
+    L1C_df.to_excel(output_path + '/timeseries_L1C.xlsx')
 
     L2A_df.reset_index(drop=True, inplace=True)
-    L2A_df.to_excel(
-        output_path + '/timeseries_L2A.xlsx')
+    L2A_df.to_excel(output_path + '/timeseries_L2A.xlsx')
 
 
 def main(args_list=None):
     # parser for input parameters
     parser = argparse.ArgumentParser(
-        description='Download Sentinel-2 NDVI, NDWI, Raw bands from Sentinel Hub. All products are based on L1C and L2A.')
+        description='Download Sentinel-2 NDVI, NDWI, Raw bands from Sentinel Hub. All products are based on L1C and L2A.'
+    )
 
+    parser.add_argument('-f',
+                        '--file',
+                        help='shapefile input file',
+                        type=str,
+                        required=True)
+    parser.add_argument('-o',
+                        '--output',
+                        help='output directory name e.g. -o test',
+                        type=str,
+                        required=True)
     parser.add_argument(
-        '-f', '--file', help='shapefile input file', type=str, required=True)
+        '-t',
+        '--timespan',
+        help='JSON with year and timespan for every year e.g. "{"2016": ["01-01-2016", "01-12-2016"]}"',
+        type=str,
+        default='{"2016": ["01-01-2016", "01-2-2016"]}',
+        required=True)
     parser.add_argument(
-        '-o', '--output', help='output directory name e.g. -o test', type=str, required=True)
-    parser.add_argument(
-        '-t', '--timespan', help='JSON with year and timespan for every year e.g. "{"2016": ["01-01-2016", "01-12-2016"]}"', type=str, default='{"2016": ["01-01-2016", "01-2-2016"]}', required=True)
-    parser.add_argument(
-        '-a', '--api', help='Choose Sentinel hub API: FisRequst or SentinelHubStatistical', type=str, default='FisRequest', required=True)
+        '-a',
+        '--api',
+        help='Choose Sentinel hub API: FisRequst or SentinelHubStatistical',
+        type=str,
+        default='FisRequest',
+        required=True)
 
-    parser.add_argument(
-        '-y', '--target', help='add a target variable to satellite data', type=str, default=0)
-    parser.add_argument(
-        '-mp', '--multipoly', help='Filter out multipolygons in shapefile', type=str, default=True)
-    parser.add_argument(
-        '-area', help='Filter out small polygons (square meter)', type=str, default=0)
+    parser.add_argument('-y',
+                        '--target',
+                        help='add a target variable to satellite data',
+                        type=str,
+                        default=0)
+    parser.add_argument('-mp',
+                        '--multipoly',
+                        help='Filter out multipolygons in shapefile',
+                        type=str,
+                        default=True)
+    parser.add_argument('-area',
+                        help='Filter out small polygons (square meter)',
+                        type=str,
+                        default=0)
     # parser.add_argument(
-    #    '-t1', help='startDate (string): e.g. MM-DD-YYYY', type=str, default='01-01-2016')
+    #    '-t1', help='startDate (string): e.g. MM-DD-YYYY',
+    #                   type=str, default='01-01-2016')
     # parser.add_argument(
-    #    '-t2', help='stopDate (string): e.g. 12-30', type=str, default='12-30')
+    #    '-t2', help='stopDate (string): e.g. 12-30',
+    #                   type=str, default='12-30')
 
     # parser.add_argument(
-    #    '-proc', help='Processing Level Options: L1C or L2A', type=str, default='both')
+    #    '-proc', help='Processing Level Options: L1C or L2A',
+    #                   type=str, default='both')
     # parser.add_argument(
-    #    '-index', help='Options: NDVI, NDWI, Raw bands', type=str, default='all')
+    #    '-index', help='Options: NDVI, NDWI, Raw bands',
+    #                   type=str, default='all')
 
     if args_list:
         args = parser.parse_args(args_list)
@@ -346,7 +364,9 @@ def main(args_list=None):
     elif args.api == 'SentinelHubStatistical':
         download_via_shs(args)
     else:
-        print('Please verify API name...should be FisRequest or SentinelHubstatistical.')
+        print(
+            'Please verify API name...should be FisRequest or SentinelHubstatistical.'
+        )
 
 
 if __name__ == "__main__":

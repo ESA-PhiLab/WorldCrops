@@ -1,5 +1,5 @@
-#helper function copied from lightly
-#https://docs.lightly.ai/tutorials/package/tutorial_simsiam_esa.html
+# helper function copied from lightly
+# https://docs.lightly.ai/tutorials/package/tutorial_simsiam_esa.html
 
 
 def get_image_as_np_array(filename: str):
@@ -52,6 +52,7 @@ def plot_nearest_neighbors_3x3(example_image: str, i: int):
         # let's disable the axis
         plt.axis("off")
 
+
 def get_scatter_plot_with_thumbnails():
     """Creates a scatter plot with image overlays.
     """
@@ -66,7 +67,7 @@ def get_scatter_plot_with_thumbnails():
     np.random.shuffle(iterator)
     for i in iterator:
         # only show image if it is sufficiently far away from the others
-        dist = np.sum((embeddings_2d[i] - shown_images) ** 2, 1)
+        dist = np.sum((embeddings_2d[i] - shown_images)**2, 1)
         if np.min(dist) < 2e-3:
             continue
         shown_images = np.r_[shown_images, [embeddings_2d[i]]]
@@ -89,5 +90,3 @@ def get_scatter_plot_with_thumbnails():
     # set aspect ratio
     ratio = 1. / ax.get_data_ratio()
     ax.set_aspect(ratio, adjustable='box')
-
-

@@ -1,9 +1,8 @@
 # helper function from Sentinel Hub and own function to process S2 data
 # add further js evalscript here
-import pandas as pd
-from uuid import uuid4
-import geopandas as gpd
 
+
+import pandas as pd
 from sentinelhub.time_utils import parse_time
 
 
@@ -17,8 +16,10 @@ def fis_data_to_dataframe(fis_data):
     for fis_response in fis_data:
         for channel, channel_stats in fis_response.items():
             for stat in channel_stats:
-                row = [int(channel[1:]), parse_time(
-                    stat['date'], force_datetime=True)]
+                row = [
+                    int(channel[1:]),
+                    parse_time(stat['date'], force_datetime=True)
+                ]
 
                 for column in COLUMNS[2:]:
                     row.append(stat['basicStats'][column])
@@ -32,7 +33,8 @@ def add_cloud_info(dataframe):
     ''' Add column with cloud infos for every observation'''
 
     df = dataframe.copy()
-    # channel 0 stands for clouds // (CLM: fraction of cloudy pixels per each observation)
+    # channel 0 stands for clouds //
+    # (CLM: fraction of cloudy pixels per each observation)
     clouds = df[df.channel == 0][['date', 'max']]
     clouds.rename(columns={'max': 'clouds'}, inplace=True)
     clouds.set_index('date', inplace=True)
@@ -50,7 +52,8 @@ def add_cloud_info(dataframe):
 
 
 def stats_to_df(stats_data):
-    """ function from Sentinel Hub: Transform Statistical API response into a pandas.DataFrame
+    """ function from Sentinel Hub: Transform Statistical API response
+    into a pandas.DataFrame
     """
     df_data = []
 
@@ -85,8 +88,8 @@ def stats_to_df(stats_data):
 
     return pd.DataFrame(df_data)
 
-############### js scripts for Sentinel Hub Statistical###############################
 
+# js scripts for Sentinel Hub Statistical
 
 evalscript = """
 //VERSION=3

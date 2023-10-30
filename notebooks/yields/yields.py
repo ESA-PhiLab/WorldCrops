@@ -1,47 +1,44 @@
 # %%
 # Demo for visualisation of crop type and yield data
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
-
-#3D stuff
-from IPython.core.display import display, HTML
 import json
-
-import geopandas as gpd
-import geojson
-import pandas as pd
 import os
-
+from datetime import datetime
 from functools import partial
-from shapely.geometry import Point # Point class
-from shapely.geometry import shape # shape() is a function to convert geo objects through the interface
-from sklearn import preprocessing
-from matplotlib.ticker import StrMethodFormatter, NullFormatter
-import matplotlib.ticker as mticker
-from matplotlib.cm import ScalarMappable
 
+import geojson
+import geopandas as gpd
 #!pip install matplotlib
 import matplotlib.pyplot as plt
-
-from sklearn.preprocessing import StandardScaler
-from datetime import datetime
-from tqdm.auto import tqdm
-from sklearn.model_selection import cross_validate, cross_val_score
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import Pipeline
-from sklearn.model_selection import cross_validate
+import matplotlib.ticker as mticker
+import pandas as pd
 import seaborn as sns
+#3D stuff
+from IPython.core.display import HTML, display
+from matplotlib.cm import ScalarMappable
+from matplotlib.ticker import NullFormatter, StrMethodFormatter
+from shapely.geometry import Point  # Point class
+from shapely.geometry import \
+    shape  # shape() is a function to convert geo objects through the interface
+from sklearn import preprocessing
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.model_selection import (cross_val_score, cross_validate,
+                                     train_test_split)
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from tqdm.auto import tqdm
+
 sns.set_theme()
 sns.set_style("darkgrid")
 
-import rasterio as rio
 import json
-from pyproj import Transformer
-import numpy as np
-
 import warnings
+
+import numpy as np
+import rasterio as rio
+from pyproj import Transformer
+
 warnings.filterwarnings("ignore")
 
 tqdm.pandas()
@@ -312,6 +309,7 @@ out_df = filter_by_2std(mean, std,'Ertr.masse (Nass)(tonne/ha)', out_df )
 # %%
 #Train RF with pixels and apply
 from sklearn.model_selection import ShuffleSplit
+
 cv = ShuffleSplit(n_splits=5, test_size=0.2, random_state=0)
 
 rf = RandomForestRegressor(n_jobs=4, n_estimators=100)

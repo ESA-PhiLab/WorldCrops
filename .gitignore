@@ -77,3 +77,4 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+notebooks/demo_yields_new.ipynb
