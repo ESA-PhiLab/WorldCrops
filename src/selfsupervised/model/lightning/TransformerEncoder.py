@@ -1,14 +1,10 @@
-##########################
-# Attention Transformer
-##########################
-
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from sklearn.metrics import accuracy_score
 
-from .PositionalEncoding import PositionalEncoding
+from ..PositionalEncoding import PositionalEncoding
 
 
 class Max(nn.Module):
@@ -17,59 +13,7 @@ class Max(nn.Module):
         return x.max(1)[0]
 
 
-class Attention(nn.Module):
-
-    def __init__(self,
-                 input_dim=13,
-                 num_classes=7,
-                 d_model=64,
-                 n_head=2,
-                 d_ffn=128,
-                 nlayers=2,
-                 dropout=0.018,
-                 activation="relu",
-                 seed=42):
-        super().__init__()
-        """
-        Args:
-            input_dim: amount of input dimensions -> Sentinel2 has 13 bands
-            num_classes: amount of target classes
-            dropout: default = 0.018
-            d_model: default = 64 #number of expected features
-            n_head: default = 2 #number of heads in multiheadattention models
-            d_ff: default = 128 #dim of feedforward network 
-            nlayers: default = 2 #number of encoder layers
-            + : https://pytorch.org/docs/stable/generated/torch.nn.Transformer.html
-        Input:
-            batch size(N) x T x D
-        """
-
-        self.model_type = 'Transformer'
-        pl.seed_everything(seed)
-        encoder_layers = nn.TransformerEncoderLayer(d_model,
-                                                    n_head,
-                                                    dim_feedforward=d_ffn,
-                                                    dropout=dropout,
-                                                    activation=activation,
-                                                    batch_first=True)
-
-        self.backbone = nn.Sequential(
-            nn.Linear(input_dim, d_model), nn.ReLU(),
-            nn.TransformerEncoder(encoder_layers, nlayers,
-                                  nn.LayerNorm(d_model)), Max(), nn.ReLU())
-        self.outlinear = nn.Sequential(nn.Linear(d_model, num_classes))
-
-    def forward(self, x):
-        # N x T x D -> N x T x d_model / Batch First!
-        x = self.backbone(x)
-        x = self.outlinear(x)
-        # torch.Size([N,num_classes ])
-        x = F.log_softmax(x, dim=-1)
-        # torch.Size([N, num_classes])
-        return x
-
-
-class Attention_LM(pl.LightningModule):
+class TransformerEncoder(pl.LightningModule):
 
     def __init__(self,
                  input_dim=13,
@@ -237,7 +181,7 @@ class Attention_LM(pl.LightningModule):
         self.log('OA', round(acc, 2), logger=True)
 
 
-class Attention_Transfer(pl.LightningModule):
+class TransferLearning(pl.LightningModule):
 
     def __init__(self,
                  lr=0.0002,
@@ -248,7 +192,7 @@ class Attention_Transfer(pl.LightningModule):
                  head=None,
                  batch_size=3,
                  finetune=False,
-                 seed=42):
+                 seed=42) -> None:
         super().__init__()
         """
         Args:
@@ -264,8 +208,8 @@ class Attention_Transfer(pl.LightningModule):
         self.finetune = finetune
 
         # Hyperparameters
-        self.lr = lr
-        self.batch_size = batch_size
+        self.lr: float = lr
+        self.batch_size: int = batch_size
         self.ce = nn.CrossEntropyLoss()
         self.save_hyperparameters()
 
@@ -273,11 +217,11 @@ class Attention_Transfer(pl.LightningModule):
         self.backbone = backbone
         self.outlinear = head
 
-        if (backbone and head) == None:
+        if (backbone and head) is None:
             print('Backbone/head not loaded')
             return
 
-        if self.finetune == False:
+        if self.finetune is False:
             # freeze params of backbone
             for param in self.backbone.parameters():
                 param.requires_grad = False

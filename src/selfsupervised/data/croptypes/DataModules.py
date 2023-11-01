@@ -1,12 +1,17 @@
 from typing import Optional
 
+import pandas as pd
 import pytorch_lightning as pl
+from pyparsing import Any
 from sklearn.model_selection import GroupShuffleSplit
 from torch.utils.data import DataLoader
 
-from selfsupervised.processing.utils import *
+from selfsupervised.processing.utils import (clean_bavarian_labels,
+                                             remove_false_observation,
+                                             rewrite_id_CustomDataSet)
 
-from .TimeSeriesDataSet import *
+from .TimeSeriesDataSet import (CropInvarianceAug, DriftNoiseAug, TSAugmented,
+                                TSDataSet)
 
 
 class BavariaDataModule(pl.LightningDataModule):
@@ -16,17 +21,17 @@ class BavariaDataModule(pl.LightningDataModule):
                  batch_size=32,
                  num_workers=2,
                  experiment='Experiment1',
-                 **kwargs):
+                 **kwargs) -> None:
         super().__init__()
-        self.data_dir = data_dir
+        self.data_dir: str = data_dir
         self.transform = None
-        self.batch_size = batch_size
-        self.num_workers = num_workers
-        self.experiment = experiment
+        self.batch_size: int = batch_size
+        self.num_workers: int = num_workers
+        self.experiment: str = experiment
 
-        self.data = pd.read_excel(self.data_dir)
+        self.data: pd.DataFrame = pd.read_excel(io=self.data_dir)
         # list with selected features "Bands 1-13"
-        self.feature_list = [
+        self.feature_list: list[str] = [
             'B4_mean', 'B5_mean', 'B6_mean', 'B7_mean', 'B8_mean', 'B8A_mean',
             'B9_mean', 'B11_mean', 'B12_mean'
         ]  # self.data.columns[self.data.columns.str.contains('B')].tolist()
@@ -40,8 +45,8 @@ class BavariaDataModule(pl.LightningDataModule):
                 self.__setattr__(k, kwargs[k])
 
         # preprocess
-        self.data = clean_bavarian_labels(self.data)
-        self.data = remove_false_observation(self.data)
+        self.data = clean_bavarian_labels(dataframe=self.data)
+        self.data = remove_false_observation(df=self.data)
         # filter by date
         self.data = self.data[(self.data['Date'] >= "03-30")
                               & (self.data['Date'] <= "08-30")]
@@ -51,7 +56,7 @@ class BavariaDataModule(pl.LightningDataModule):
         self.validate = None
         self.test = None
 
-    def experiment1(self):
+    def experiment1(self):# -> tuple[Any, Any]:
         """data from 2016 2017 and 2018
 
         Returns:
@@ -66,13 +71,13 @@ class BavariaDataModule(pl.LightningDataModule):
         test = self.data.iloc[test_inds]
         return train, test
 
-    def experiment2(self):
+    def experiment2(self) -> tuple[pd.DataFrame, pd.DataFrame]:
         '''data from 2016 and 2017/ test with 2018'''
         test = self.data[self.data.Year == 2018]
         train = self.data[self.data.Year != 2018]
         return train, test
 
-    def experiment3(self):
+    def experiment3(self) -> tuple[pd.DataFrame, pd.DataFrame]:
         '''data from 2016 and 2017 + 5% 2018'''
         # amount of data in % sampled from 2018
         percent = 5
@@ -93,7 +98,7 @@ class BavariaDataModule(pl.LightningDataModule):
         test = _2018
         return train, test
 
-    def experiment4(self):
+    def experiment4(self) -> tuple[pd.DataFrame, pd.DataFrame]:
         '''data from 2016 and 2017 + 10% 2018 '''
         # amount of data in % sampled from 2018
         percent = 10
@@ -193,66 +198,66 @@ class BavariaDataModule(pl.LightningDataModule):
             def func(df):
                 return clean_bavarian_labels(df)
 
-            ts_train = TSDataSet(train,
-                                 self.feature_list,
-                                 'NC',
+            ts_train = TSDataSet(data=train,
+                                 feature_list=self.feature_list,
+                                 target_col='NC',
                                  field_id='id',
                                  time_steps=11)
-            ts_test = TSDataSet(test,
-                                self.feature_list,
-                                'NC',
+            ts_test = TSDataSet(data=test,
+                                feature_list=self.feature_list,
+                                target_col='NC',
                                 field_id='id',
                                 time_steps=11)
 
         elif self.experiment == 'Experiment3':
             train, test = self.experiment3()
-            ts_train = TSDataSet(train,
-                                 self.feature_list,
-                                 'NC',
+            ts_train = TSDataSet(data=train,
+                                 feature_list=self.feature_list,
+                                 target_col='NC',
                                  field_id='id',
                                  time_steps=11)
-            ts_test = TSDataSet(test,
-                                self.feature_list,
-                                'NC',
+            ts_test = TSDataSet(data=test,
+                                feature_list=self.feature_list,
+                                target_col='NC',
                                 field_id='id',
                                 time_steps=11)
 
         elif self.experiment == 'Experiment4':
             train, test = self.experiment4()
-            ts_train = TSDataSet(train,
-                                 self.feature_list,
-                                 'NC',
+            ts_train = TSDataSet(data=train,
+                                 feature_list=self.feature_list,
+                                 target_col='NC',
                                  field_id='id',
                                  time_steps=11)
-            ts_test = TSDataSet(test,
-                                self.feature_list,
-                                'NC',
+            ts_test = TSDataSet(data=test,
+                                feature_list=self.feature_list,
+                                target_col='NC',
                                 field_id='id',
                                 time_steps=11)
 
         elif self.experiment == 'Experiment5':
             train, test, _ = self.exp_without1617_5Prozent()
-            ts_train = TSDataSet(train,
-                                 self.feature_list,
-                                 'NC',
+            ts_train = TSDataSet(data=train,
+                                 feature_list=self.feature_list,
+                                 target_col='NC',
                                  field_id='id',
                                  time_steps=11)
-            ts_test = TSDataSet(test,
-                                self.feature_list,
-                                'NC',
+            ts_test = TSDataSet(data=test,
+                                feature_list=self.feature_list,
+                                target_col='NC',
                                 field_id='id',
                                 time_steps=11)
 
         elif self.experiment == 'Experiment6':
             train, test, _ = self.exp_without1617_10Prozent()
-            ts_train = TSDataSet(train,
-                                 self.feature_list,
-                                 'NC',
+            ts_train = TSDataSet(data=train,
+                                 feature_list=self.feature_list,
+                                 target_col='NC',
                                  field_id='id',
                                  time_steps=11)
-            ts_test = TSDataSet(test,
-                                self.feature_list,
-                                'NC',
+            ts_test = TSDataSet(data=test,
+                                feature_list=self.feature_list,
+                                target_col='NC',
                                 field_id='id',
                                 time_steps=11)
 
@@ -268,22 +273,22 @@ class BavariaDataModule(pl.LightningDataModule):
         if stage in (None, "test"):
             self.test = ts_test
 
-    def train_dataloader(self):
-        return DataLoader(self.train,
+    def train_dataloader(self) -> DataLoader[Any]:
+        return DataLoader(dataset=self.train,  # type: ignore
                           batch_size=self.batch_size,
                           shuffle=True,
                           drop_last=False,
                           num_workers=self.num_workers)
 
-    def val_dataloader(self):
-        return DataLoader(self.validate,
+    def val_dataloader(self) -> DataLoader[Any]:
+        return DataLoader(dataset=self.validate,  # type: ignore
                           batch_size=self.batch_size,
                           shuffle=False,
                           drop_last=False,
                           num_workers=self.num_workers)
 
-    def test_dataloader(self):
-        return DataLoader(self.test,
+    def test_dataloader(self) -> DataLoader[Any]:
+        return DataLoader(dataset=self.test,  # type: ignore
                           batch_size=self.batch_size,
                           shuffle=False,
                           drop_last=False,
@@ -298,20 +303,20 @@ class AugmentationExperiments(pl.LightningDataModule):
                  num_workers=2,
                  experiment='Experiment1',
                  feature='B',
-                 **kwargs):
+                 **kwargs) -> None:
         super().__init__()
-        self.data_dir = data_dir
+        self.data_dir: str = data_dir
         self.transform = None
-        self.batch_size = batch_size
-        self.num_workers = num_workers
-        self.data = pd.read_excel(self.data_dir)
+        self.batch_size: int = batch_size
+        self.num_workers: int = num_workers
+        self.data: pd.DataFrame = pd.read_excel(self.data_dir)
         # list with selected features "Bands 1-13"
-        self.feature_list = [
+        self.feature_list: list[str] = [
             'B4_mean', 'B5_mean', 'B6_mean', 'B7_mean', 'B8_mean', 'B8A_mean',
             'B9_mean', 'B11_mean', 'B12_mean'
         ]
         # self.data.columns[self.data.columns.str.contains(feature)].tolist()
-        self.experiment = experiment
+        self.experiment: str = experiment
 
         # update parameters with kwargs
         self.__dict__.update(kwargs)
@@ -320,8 +325,8 @@ class AugmentationExperiments(pl.LightningDataModule):
                 self.__setattr__(k, kwargs[k])
 
         # preprocess
-        self.data = clean_bavarian_labels(self.data)
-        self.data = remove_false_observation(self.data)
+        self.data = clean_bavarian_labels(dataframe=self.data)
+        self.data = remove_false_observation(df=self.data)
         self.data = self.data[(self.data['Date'] >= "03-30")
                               & (self.data['Date'] <= "08-30")]
         self.data = rewrite_id_CustomDataSet(self.data)
@@ -543,7 +548,6 @@ class AugmentationExperiments(pl.LightningDataModule):
 
             a = train.mean()[self.feature_list].to_numpy()
             b = test.mean()[self.feature_list].to_numpy()
-            diff = b - a
             # ts_data = Shift_TS(train, factor=8, diff = diff, feature_list = self.feature_list, time_steps = 11)
 
         elif self.experiment == 'Experiment13':
@@ -556,7 +560,6 @@ class AugmentationExperiments(pl.LightningDataModule):
                                     time_steps=11)
             a = train.mean()[self.feature_list].to_numpy()
             b = test.mean()[self.feature_list].to_numpy()
-            diff = b - a
             # ts_data = Shift_TS(train, factor=8, diff = diff, feature_list = self.feature_list, time_steps = 11)
 
         elif self.experiment == 'Experiment14':
@@ -567,7 +570,6 @@ class AugmentationExperiments(pl.LightningDataModule):
                                     time_steps=11)
             a = train.mean()[self.feature_list].to_numpy()
             b = test.mean()[self.feature_list].to_numpy()
-            diff = b - a
             # ts_data = Shift_TS(train, factor=8, diff = diff, feature_list = self.feature_list, time_steps = 11)
 
         elif self.experiment == 'Experiment15':
@@ -579,7 +581,6 @@ class AugmentationExperiments(pl.LightningDataModule):
                                     time_steps=11)
             a = train.mean()[self.feature_list].to_numpy()
             b = test.mean()[self.feature_list].to_numpy()
-            diff = b - a
             # ts_data = Shift_TS(train, factor=8, diff = diff, feature_list = self.feature_list, time_steps = 11)
 
         elif self.experiment == 'Experiment16':
@@ -619,8 +620,8 @@ class AugmentationExperiments(pl.LightningDataModule):
             self.train = ts_data
             self.validate = ts_data
 
-    def train_dataloader(self):
-        return DataLoader(self.train,
+    def train_dataloader(self) -> DataLoader[Any]:
+        return DataLoader(dataset=self.train,
                           batch_size=self.batch_size,
                           shuffle=True,
                           drop_last=True,

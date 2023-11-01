@@ -145,7 +145,7 @@ dataloader_test = torch.utils.data.DataLoader(dataset_test,
 # %%
 resnet = torchvision.models.resnet18()
 backbone = nn.Sequential(*list(resnet.children())[:-1])
-model = ssl.model.SimSiam_Images(backbone, num_ftrs, proj_hidden_dim,
+model = selfsupervised.model.lightning.SimSiam_Images(backbone, num_ftrs, proj_hidden_dim,
                                  pred_hidden_dim, out_dim)
 
 

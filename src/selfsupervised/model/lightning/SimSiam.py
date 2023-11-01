@@ -1,56 +1,13 @@
 import math
 
 import lightly
-import numpy as np
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import torchvision
-from lightly.models.modules import NNMemoryBankModule
-from lightly.models.modules.heads import (ProjectionHead,
-                                          SimSiamPredictionHead,
-                                          SimSiamProjectionHead)
-from lightly.models.utils import (batch_shuffle, batch_unshuffle,
-                                  deactivate_requires_grad, update_momentum)
+from lightly.models.modules.heads import SimSiamPredictionHead
 
 
-class SimSiam(nn.Module):
-
-    def __init__(self,
-                 backbone=nn.Module,
-                 num_ftrs=64,
-                 proj_hidden_dim=14,
-                 pred_hidden_dim=14,
-                 out_dim=14):
-        super().__init__()
-        self.backbone = backbone
-        self.model_type = 'SimSiam_nn.Module'
-        self.projection = lightly.models.modules.heads.ProjectionHead([
-            (num_ftrs, proj_hidden_dim, nn.BatchNorm1d(proj_hidden_dim),
-             nn.ReLU()),
-            (proj_hidden_dim, out_dim, nn.BatchNorm1d(out_dim), None)
-        ])
-        self.prediction = SimSiamPredictionHead(out_dim, pred_hidden_dim,
-                                                out_dim)
-
-    def forward(self, x0, x1):
-        f0 = self.backbone(x0)
-        f1 = self.backbone(x1)
-
-        z0 = self.projection(f0)
-        z1 = self.projection(f1)
-
-        p0 = self.prediction(z0)
-        p1 = self.prediction(z1)
-
-        z0 = z0.detach()
-        z1 = z1.detach()
-
-        return (z0, p0), (z1, p1)
-
-
-class SimSiam_LM(pl.LightningModule):
+class SimSiam(pl.LightningModule):
 
     def __init__(self,
                  backbone=nn.Module,
@@ -69,7 +26,7 @@ class SimSiam_LM(pl.LightningModule):
         self.weight_decay = weight_decay
         self.epochs = epochs
 
-        self.ce = lightly.loss.NegativeCosineSimilarity()
+        self.ce = lightly.loss.NegativeCosineSimilarity()  # type: ignore
         self.backbone = backbone
         self.model_type = 'SimSiam_LM'
         self.projection = lightly.models.modules.heads.ProjectionHead([
@@ -122,13 +79,13 @@ class SimSiam_LM(pl.LightningModule):
         self.avg_output_std = w * self.avg_output_std + (
             1 - w) * output_std.item()
 
-        self.logger.experiment.add_scalar('train_loss_ssl',
+        self.logger.experiment.add_scalar('train_loss_ssl',  # type: ignore
                                           loss,
                                           global_step=self.current_epoch)
-        self.logger.experiment.add_scalar('Avgloss',
+        self.logger.experiment.add_scalar('Avgloss',  # type: ignore
                                           self.avg_loss,
                                           global_step=self.current_epoch)
-        self.logger.experiment.add_scalar('Avgstd',
+        self.logger.experiment.add_scalar('Avgstd',  # type: ignore
                                           self.avg_output_std,
                                           global_step=self.current_epoch)
         return {
@@ -143,7 +100,7 @@ class SimSiam_LM(pl.LightningModule):
         self.collapse_level = max(
             0., 1 - math.sqrt(self.out_dim) * self.avg_output_std)
         # self.log('Collapse Level', round(self.collapse_level,2), logger=True)
-        self.logger.experiment.add_scalar('Collapse Level',
+        self.logger.experiment.add_scalar('Collapse Level',  # type: ignore
                                           round(self.collapse_level, 2),
                                           global_step=self.current_epoch)
 
@@ -156,7 +113,7 @@ class SimSiam_LM(pl.LightningModule):
 
         # log every 10 epochs
         if not self.current_epoch % 10:
-            self.logger.experiment.add_embedding(
+            self.logger.experiment.add_embedding(  # type: ignore
                 torch.cat(embedding_list),
                 metadata=torch.cat(y_true_list),
                 global_step=self.current_epoch,

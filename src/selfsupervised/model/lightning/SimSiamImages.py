@@ -1,21 +1,13 @@
 import math
 
 import lightly
-import numpy as np
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import torchvision
-from lightly.models.modules import NNMemoryBankModule
-from lightly.models.modules.heads import (ProjectionHead,
-                                          SimSiamPredictionHead,
-                                          SimSiamProjectionHead)
-from lightly.models.utils import (batch_shuffle, batch_unshuffle,
-                                  deactivate_requires_grad, update_momentum)
+from lightly.models.modules.heads import SimSiamPredictionHead
 
 
-class SimSiam_Images(pl.LightningModule):
+class SimSiamImages(pl.LightningModule):
 
     def __init__(self,
                  backbone=nn.Module,
@@ -179,7 +171,7 @@ class SimSiam_Images(pl.LightningModule):
         return [optimizer], [scheduler]
 
 
-class SimSiam_UNet(pl.LightningModule):
+class SimSiamUNet(pl.LightningModule):
 
     def __init__(self,
                  backbone=nn.Module,

@@ -110,8 +110,8 @@ def augment_df(_df, years):
             train.loc[train.id == id, 'id_x1'] = int(x1.head(1).id.values[0])
             train.loc[train.id == id, 'id_x2'] = int(x2.head(1).id.values[0])
 
-        except:
-            print('Error in Augmentation')
+        except Exception as e:
+            print('Error in Augmentation', e)
             pass
 
     return train
@@ -129,7 +129,7 @@ def printConfusionResults(confusion):
     tmp['UA'] = 0
     for idx, row in tmp.iterrows():
         # print(idx)
-        tmp['UA'].loc[idx] = round(((row[idx]) / row['Total'] * 100), 2)
+        tmp['UA'].loc[idx] = round(((row[idx]) / row['Total'] * 100), 2) # type: ignore
 
     # UA
     tmp2 = pd.crosstab(confusion["y_test"],
@@ -139,7 +139,7 @@ def printConfusionResults(confusion):
     tmp['PA'] = 0
     for idx, row in tmp2.iterrows():
         # print(row[idx],row.sum())
-        tmp['PA'].loc[idx] = round(((row[idx]) / row['Total']) * 100, 2)
+        tmp['PA'].loc[idx] = round(((row[idx]) / row['Total']) * 100, 2) # type: ignore
 
     # hier überprüfen ob alles stimmt
 
@@ -152,14 +152,14 @@ def printConfusionResults(confusion):
     print(
         'Kappa:',
         round(
-            sklearn.metrics.cohen_kappa_score(confusion["y_pred"],
+            sklearn.metrics.cohen_kappa_score(confusion["y_pred"], # type: ignore
                                               confusion["y_test"],
                                               weights='quadratic'), 4))
     print('#########')
     print(
         "Ac:",
         round(
-            sklearn.metrics.accuracy_score(confusion["y_pred"],
+            sklearn.metrics.accuracy_score(confusion["y_pred"], # type: ignore
                                            confusion["y_test"]), 4))
     print(tmp)
 

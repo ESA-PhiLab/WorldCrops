@@ -3,7 +3,7 @@ from typing import Any
 import torch.nn as nn
 
 
-class Head_1(nn.Module):
+class ThreeLayerHead(nn.Module):
 
     def __init__(self, input_dim, num_classes) -> None:
         super().__init__()

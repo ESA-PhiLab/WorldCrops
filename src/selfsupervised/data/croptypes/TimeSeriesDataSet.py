@@ -1,27 +1,25 @@
 import random
-from random import randrange, uniform
+from random import randrange
 
 import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
-from tqdm import tqdm
-from tsaug import (AddNoise, Convolve, Crop, Drift, Dropout, Pool, Quantize,
-                   Resize, Reverse, TimeWarp)
+from tsaug import AddNoise, Drift
 
 
 class OwnAugmentation():
 
     def jitter(x, sigma=0.03):
         # https://arxiv.org/pdf/1706.00527.pdf
-        return x + np.random.normal(loc=0., scale=sigma, size=x.shape)
+        return x + np.random.normal(loc=0., scale=sigma, size=x.shape)  # type: ignore
 
     def scaling(x, sigma=0.1):
         # https://arxiv.org/pdf/1706.00527.pdf
         factor = np.random.normal(loc=1.,
                                   scale=sigma,
-                                  size=(x.shape[0], x.shape[1]))
-        return np.multiply(x, factor[:, :])
+                                  size=(x.shape[0], x.shape[1]))  # type: ignore
+        return np.multiply(x, factor[:, :]) # type: ignore
 
     def constant_reflectance_change(x, min=0, max=10):
         '''
@@ -30,7 +28,7 @@ class OwnAugmentation():
         :param x: numpy array with band values
         '''
         shift = randrange(int(min), int(max))
-        return x + shift
+        return x + shift # type: ignore
 
     def bands_reflectance_change(x, band_list):
         '''
@@ -128,7 +126,7 @@ class AugmentationSampling():
                     samples[n, c, t] = abs(
                         np.random.normal(self.mu[year, type, c, t],
                                          self.std[year, type, c, t]))
-        return torch.from_numpy(samples).type(torch.FloatTensor)
+        return torch.from_numpy(samples).type(torch.FloatTensor) # type: ignore
 
 
 class TSAugmented(Dataset):
@@ -169,10 +167,10 @@ class TSAugmented(Dataset):
         if self.factor < 1:
             print('Factor needs to be at least 1')
             return
-        if self.y.size == 0:
+        if self.y.size == 0: # type: ignore
             print('Target column not in dataframe')
             return
-        if self.field_ids.size == 0:
+        if self.field_ids.size == 0: # type: ignore
             print('Field id not defined')
             return
 
@@ -180,8 +178,8 @@ class TSAugmented(Dataset):
         # field x T x D
         self.df = self.df.reshape(int(self._fields_amount), self.time_steps,
                                   len(self.feature_list))
-        self.y = self.y.reshape(int(self._fields_amount), 1, self.time_steps)
-        self.field_ids = self.field_ids.reshape(int(self._fields_amount), 1,
+        self.y = self.y.reshape(int(self._fields_amount), 1, self.time_steps) # type: ignore
+        self.field_ids = self.field_ids.reshape(int(self._fields_amount), 1, # type: ignore
                                                 self.time_steps)
 
         # ::: Statistics for augmentation sampling
@@ -248,7 +246,6 @@ class TSAugmented(Dataset):
     def __getitem__(self, idx):
         x = self.df[idx, :, :]
         y = self.y[idx, 0, 0]
-        field_id = self.field_ids[idx, 0, 0]
 
         # : Augmentation 1
         year = int(np.rint(
@@ -401,7 +398,7 @@ class TSDataSet(Dataset):
         return torch for x
         '''
         # nb_obs, nb_features = self.x.shape
-        return torch.from_numpy(x).type(torch.FloatTensor)
+        return torch.from_numpy(x).type(torch.FloatTensor) # type: ignore
 
     def y2torch(self, y):
         '''
@@ -434,7 +431,7 @@ class CropInvarianceAug(Dataset):
         if self.size == 0:
             print('Define data size')
             return
-        if callback != None:
+        if callback is not None:
             self.df = callback(self.df)
 
         # numpy with augmented data
@@ -451,8 +448,9 @@ class CropInvarianceAug(Dataset):
                 self.augmented[idx, 0] = ts1
                 self.augmented[idx, 1] = ts2
                 self.labels[idx, 0] = y
-        except:
+        except Exception as e:
             print('Error in data generation:', ts1.shape, ts2.shape, idx)
+            raise e
 
     def get_X1_X2(self, data, features):
         '''Returns two different timeseries for the same crop
@@ -557,7 +555,6 @@ class CropInvarianceAug2(Dataset):
     def get_X1_X2(self, data, features):
         '''Returns two different timeseries for the same crop
         '''
-        random_field = random.choice(data.id.unique())
         random_crop = random.choice(data.NC.unique())
 
         # two different years
@@ -593,7 +590,7 @@ class CropInvarianceAug2(Dataset):
         y = self.y2torch(y)
 
         # None torch values for x,y
-        x = torch.from_numpy(np.array(0)).type(torch.FloatTensor)
+        x = torch.from_numpy(np.array(0)).type(torch.FloatTensor) # type: ignore
         # y = torch.from_numpy(y).type(torch.FloatTensor)
 
         return (aug_x1, aug_x2), x, y
@@ -603,7 +600,7 @@ class CropInvarianceAug2(Dataset):
         return torch for x
         '''
         # nb_obs, nb_features = self.x.shape
-        return torch.from_numpy(x).type(torch.FloatTensor)
+        return torch.from_numpy(x).type(torch.FloatTensor) # type: ignore
 
     def y2torch(self, y):
         '''
@@ -629,7 +626,7 @@ class DriftNoiseAug(Dataset):
         self.feature_list = feature_list
         self.time_steps = time_steps
 
-        if callback != None:
+        if callback is not None:
             self.df = callback(self.df)
 
         self._fields_amount = len(self.df[field_id].unique()) * self.factor
@@ -712,24 +709,24 @@ class Shift_TS(Dataset):
                  field_id='id',
                  time_steps=14,
                  diff=np.array([0]),
-                 callback=None):
-        self.df = data
-        self.factor = factor
-        self.df = self.reproduce(data, self.factor)
-        self.target_col = target_col
-        self.feature_list = feature_list
-        self.time_steps = time_steps
+                 callback=None) -> None:
+        self.df: pd.DataFrame = data
+        self.factor: int = factor
+        self.df = self.reproduce(df=data, _size=self.factor)
+        self.target_col: str = target_col
+        self.feature_list: list = feature_list
+        self.time_steps: int = time_steps
         self.diff = diff
 
-        if callback != None:
+        if callback is not None:
             self.df = callback(self.df)
 
-        self._fields_amount = len(self.df[field_id].unique()) * self.factor
+        self._fields_amount: int = len(self.df[field_id].unique()) * self.factor
 
         # get numpy
-        self.y = self.df[self.target_col].values
-        self.field_ids = self.df[field_id].values
-        self.df = self.df[self.feature_list].values
+        self.y: pd.Series = self.df[self.target_col].values  # type: ignore
+        self.field_ids: pd.Series = self.df[field_id].values
+        self.df = self.df[self.feature_list].values # type: ignore
 
         if self.factor < 1:
             print('Factor needs to be at least 1')
@@ -769,7 +766,6 @@ class Shift_TS(Dataset):
     def __getitem__(self, idx):
         x = self.df[idx, :, :]
         y = self.y[idx, 0, 0]
-        field_id = self.field_ids[idx, 0, 0]
 
         aug_type = 0  # random.choice([0,1])
 

@@ -1,5 +1,13 @@
 # helper function copied from lightly
 # https://docs.lightly.ai/tutorials/package/tutorial_simsiam_esa.html
+import os
+
+import matplotlib.offsetbox as osb
+import matplotlib.pyplot as plt
+import numpy as np
+import torchvision.transforms.functional as functional
+from matplotlib import rcParams
+from PIL import Image
 
 
 def get_image_as_np_array(filename: str):
@@ -24,36 +32,7 @@ def get_image_as_np_array_with_frame(filename: str, w: int = 5):
     return framed_img
 
 
-def plot_nearest_neighbors_3x3(example_image: str, i: int):
-    """Plots the example image and its eight nearest neighbors.
-
-    """
-    n_subplots = 9
-    # initialize empty figure
-    fig = plt.figure()
-    fig.suptitle(f"Nearest Neighbor Plot {i + 1}")
-    #
-    example_idx = filenames.index(example_image)
-    # get distances to the cluster center
-    distances = embeddings - embeddings[example_idx]
-    distances = np.power(distances, 2).sum(-1).squeeze()
-    # sort indices by distance to the center
-    nearest_neighbors = np.argsort(distances)[:n_subplots]
-    # show images
-    for plot_offset, plot_idx in enumerate(nearest_neighbors):
-        ax = fig.add_subplot(3, 3, plot_offset + 1)
-        # get the corresponding filename
-        fname = os.path.join(path_to_data, filenames[plot_idx])
-        if plot_offset == 0:
-            ax.set_title(f"Example Image")
-            plt.imshow(get_image_as_np_array_with_frame(fname))
-        else:
-            plt.imshow(get_image_as_np_array(fname))
-        # let's disable the axis
-        plt.axis("off")
-
-
-def get_scatter_plot_with_thumbnails():
+def get_scatter_plot_with_thumbnails(path_to_data, filenames, embeddings_2d):
     """Creates a scatter plot with image overlays.
     """
     # initialize empty figure and add subplot
@@ -75,7 +54,7 @@ def get_scatter_plot_with_thumbnails():
 
     # plot image overlays
     for idx in shown_images_idx:
-        thumbnail_size = int(rcp['figure.figsize'][0] * 2.)
+        thumbnail_size = int(rcParams['figure.figsize'][0] * 2.)
         path = os.path.join(path_to_data, filenames[idx])
         img = Image.open(path)
         img = functional.resize(img, thumbnail_size)
