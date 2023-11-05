@@ -4,17 +4,18 @@ from lightly.models.modules.heads import SimSiamPredictionHead
 
 
 class SimSiam(nn.Module):
+    """ Basic SimSiam without Pytorch Lightning."""
 
     def __init__(self,
                  backbone=nn.Module,
                  num_ftrs=64,
                  proj_hidden_dim=14,
                  pred_hidden_dim=14,
-                 out_dim=14):
+                 out_dim=14) -> None:
         super().__init__()
         self.backbone = backbone
-        self.model_type = 'SimSiam_nn.Module'
-        self.projection = lightly.models.modules.heads.ProjectionHead([
+        self.model_type: str = 'SimSiam nn.Module'
+        self.projection = lightly.models.modules.heads.ProjectionHead([  # type: ignore
             (num_ftrs, proj_hidden_dim, nn.BatchNorm1d(proj_hidden_dim),
              nn.ReLU()),
             (proj_hidden_dim, out_dim, nn.BatchNorm1d(out_dim), None)
@@ -36,5 +37,3 @@ class SimSiam(nn.Module):
         z1 = z1.detach()
 
         return (z0, p0), (z1, p1)
-
-

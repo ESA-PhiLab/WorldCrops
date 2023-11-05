@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from sklearn.metrics import accuracy_score
 
-from ..PositionalEncoding import PositionalEncoding
+from selfsupervised.model.torchnn.positionalencoding import PositionalEncoding
 
 
 class Max(nn.Module):
@@ -14,7 +14,19 @@ class Max(nn.Module):
 
 
 class TransformerEncoder(pl.LightningModule):
-
+    """ Transformer Encoder with classification head
+     Args:
+            input_dim: amount of input dimensions -> Sentinel2 has 13 bands
+            num_classes: amount of target classes
+            dropout: default = 0.018
+            d_model: default = 64 #number of expected features
+            n_head: default = 2 #number of heads in multiheadattention models
+            d_ff: default = 128 #dim of feedforward network 
+            nlayers: default = 2 #number of encoder layers
+            + : https://pytorch.org/docs/stable/generated/torch.nn.Transformer.html
+        Input:
+            batch size(N) x T x D
+    """
     def __init__(self,
                  input_dim=13,
                  seq_length=14,
@@ -28,25 +40,9 @@ class TransformerEncoder(pl.LightningModule):
                  lr=0.0002,
                  batch_size=3,
                  seed=42,
-                 PositonalEncoding=False):
+                 PositonalEncoding=False) -> None:
         super().__init__()
-        """
-        Args:
-            input_dim: amount of input dimensions -> Sentinel2 has 13 bands
-            num_classes: amount of target classes
-            dropout: default = 0.018
-            d_model: default = 64 #number of expected features
-            n_head: default = 2 #number of heads in multiheadattention models
-            d_ff: default = 128 #dim of feedforward network 
-            nlayers: default = 2 #number of encoder layers
-            + : https://pytorch.org/docs/stable/generated/torch.nn.Transformer.html
-        Input:
-            batch size(N) x T x D
-        Output
-            batch size(N) x Targets
-        """
-
-        self.model_type = 'Transformer_LM'
+        self.model_type = 'Transformer Encoder'
         pl.seed_everything(seed)
         self.PositionalEncoding = PositionalEncoding
         self.seq_length = seq_length
@@ -56,7 +52,6 @@ class TransformerEncoder(pl.LightningModule):
         self.batch_size = batch_size
         self.ce = nn.CrossEntropyLoss()
         self.save_hyperparameters()
-
         # Layers
         encoder_layers = nn.TransformerEncoderLayer(d_model,
                                                     n_head,
@@ -64,7 +59,7 @@ class TransformerEncoder(pl.LightningModule):
                                                     dropout=dropout,
                                                     activation=activation,
                                                     batch_first=True)
-
+        # positional encoding
         if self.PositionalEncoding:
 
             self.backbone = nn.Sequential(
@@ -77,7 +72,7 @@ class TransformerEncoder(pl.LightningModule):
                 nn.Linear(input_dim, d_model), nn.ReLU(),
                 nn.TransformerEncoder(encoder_layers, nlayers,
                                       nn.LayerNorm(d_model)), Max(), nn.ReLU())
-
+        # classification output layer
         self.outlinear = nn.Sequential(nn.Linear(d_model, num_classes))
 
     def forward(self, x):
@@ -117,7 +112,7 @@ class TransformerEncoder(pl.LightningModule):
             torch.cat(y_true_list).cpu(),
             torch.cat(y_pred_list).cpu())
         # overall accuracy
-        self.log('OA', round(acc, 2), logger=True)
+        self.log('OA', round(acc, 2), logger=True) # type: ignore
         if not self.current_epoch % 10:
             self.logger.experiment.add_embedding(
                 torch.cat(embedding_list),
@@ -146,7 +141,7 @@ class TransformerEncoder(pl.LightningModule):
             torch.cat(y_true_list).cpu(),
             torch.cat(y_pred_list).cpu())
         # overall accuracy
-        self.log('OA', round(acc, 2), logger=True)
+        self.log('OA', round(acc, 2), logger=True) # type: ignore
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
@@ -178,11 +173,19 @@ class TransformerEncoder(pl.LightningModule):
             torch.cat(y_true_list).cpu(),
             torch.cat(y_pred_list).cpu())
         # Overall accuracy
-        self.log('OA', round(acc, 2), logger=True)
+        self.log('OA', round(acc, 2), logger=True) # type: ignore
 
 
 class TransferLearning(pl.LightningModule):
-
+    """ Use a pre-trained transformer encoder and finetune it
+        Args:
+            input_dim: amount of input dimensions -> Sentinel2 has 13 bands
+            num_classes: amount of target classes
+            d_model: default = 64 #number of expected features
+            backbone: pretrained encoder
+            finetune: if false -> don't update parameters of backbone
+                     if true > update all parameters (backbone + new head)
+    """
     def __init__(self,
                  lr=0.0002,
                  input_dim=13,
@@ -194,17 +197,7 @@ class TransferLearning(pl.LightningModule):
                  finetune=False,
                  seed=42) -> None:
         super().__init__()
-        """
-        Args:
-            input_dim: amount of input dimensions -> Sentinel2 has 13 bands
-            num_classes: amount of target classes
-            d_model: default = 64 #number of expected features
-            backbone: pretrained encoder
-            finetune: if false -> don't update parameters of backbone
-                     if true > update all parameters (backbone + new head)
-        """
-
-        self.model_type = 'Transformer_Transfer'
+        self.model_type = 'Transfer Learning'
         self.finetune = finetune
 
         # Hyperparameters
@@ -301,7 +294,7 @@ class TransferLearning(pl.LightningModule):
             torch.cat(y_true_list).cpu(),
             torch.cat(y_pred_list).cpu())
         # overall accuracy
-        self.log('OA', round(acc, 2), on_epoch=True, logger=True)
+        self.log('OA', round(acc, 2), on_epoch=True, logger=True) # type: ignore
         # self.logger.experiment.add_scalar('OA',round(acc,2), global_step=self.current_epoch)
 
     def configure_optimizers(self):
@@ -338,4 +331,4 @@ class TransferLearning(pl.LightningModule):
             torch.cat(y_true_list).cpu(),
             torch.cat(y_pred_list).cpu())
         # Overall accuracy
-        self.log('OA', round(acc, 2), on_epoch=True, logger=True)
+        self.log('OA', round(acc, 2), on_epoch=True, logger=True) # type: ignore

@@ -20,7 +20,7 @@ from PIL import Image
 from pytorch_lightning import loggers as pl_loggers
 
 import selfsupervised as ssl
-from selfsupervised.model.UNet import ResUnetEncoder, UNet_Transfer
+from selfsupervised.model.torchnn.unet import ResUnetEncoder, UNet_Transfer
 from selfsupervised.processing import utils
 
 utils.seed_torch()

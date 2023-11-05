@@ -1,4 +1,3 @@
-# from https://pytorch.org/tutorials/beginner/transformer_tutorial
 
 import math
 
@@ -7,11 +6,12 @@ from torch import Tensor, nn
 
 
 class PositionalEncoding(nn.Module):
-
+    """ Positonal enconding for time series from 
+    https://pytorch.org/tutorials/beginner/transformer_tutorial"""
     def __init__(self,
                  d_model: int,
                  dropout: float = 0.1,
-                 max_len: int = 5000):
+                 max_len: int = 5000) -> None:
         super().__init__()
         self.dropout = nn.Dropout(p=dropout)
 

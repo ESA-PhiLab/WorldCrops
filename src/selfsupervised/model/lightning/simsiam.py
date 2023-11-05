@@ -8,7 +8,7 @@ from lightly.models.modules.heads import SimSiamPredictionHead
 
 
 class SimSiam(pl.LightningModule):
-
+    """ SimSiam implementation """
     def __init__(self,
                  backbone=nn.Module,
                  num_ftrs=64,
@@ -18,31 +18,29 @@ class SimSiam(pl.LightningModule):
                  lr=0.02,
                  weight_decay=5e-4,
                  momentum=0.9,
-                 epochs=10):
+                 epochs=10) -> None:
         super().__init__()
-
-        self.lr = lr
-        self.momentum = momentum
-        self.weight_decay = weight_decay
-        self.epochs = epochs
+        self.lr: float = lr
+        self.momentum: float = momentum
+        self.weight_decay: float = weight_decay
+        self.epochs: int = epochs
+        # parameters for logging
+        self.avg_loss: float = 0.
+        self.avg_output_std: float = 0.
+        self.collapse_level: float = 0.
+        self.out_dim: int = out_dim
 
         self.ce = lightly.loss.NegativeCosineSimilarity()  # type: ignore
         self.backbone = backbone
-        self.model_type = 'SimSiam_LM'
-        self.projection = lightly.models.modules.heads.ProjectionHead([
+        self.model_type: str = 'SimSiam based on Pytorch Lightning'
+        self.projection = lightly.models.modules.heads.ProjectionHead([ # type: ignore
             (num_ftrs, proj_hidden_dim, nn.BatchNorm1d(proj_hidden_dim),
              nn.ReLU()),
             (proj_hidden_dim, out_dim, nn.BatchNorm1d(out_dim), None)
         ])
         self.prediction = SimSiamPredictionHead(out_dim, pred_hidden_dim,
                                                 out_dim)
-
-        # parameters for logging
-        self.avg_loss = 0.
-        self.avg_output_std = 0.
-        self.collapse_level = 0.
-        self.out_dim = out_dim
-
+            
     def forward(self, x0, x1):
         f0 = self.backbone(x0)
         f1 = self.backbone(x1)
@@ -131,6 +129,3 @@ class SimSiam(pl.LightningModule):
             optimizer, self.epochs)
         return [optimizer], [scheduler]
 
-
-# add this
-# https://githubmemory.com/repo/PyTorchLightning/pytorch-lightning/issues/8302

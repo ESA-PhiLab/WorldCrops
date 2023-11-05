@@ -4,8 +4,8 @@ with open('../requirements.txt') as f:
     reqs = f.read().splitlines()
 
 setup(
-    name='WorldCrops',
-    version='0.0.1',
+    name='selfsupervised',
+    version='0.0.2',
     description='Lib for self supervised learning',
     license='MIT',
     packages=[

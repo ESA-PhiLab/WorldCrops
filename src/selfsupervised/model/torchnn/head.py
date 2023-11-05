@@ -4,7 +4,7 @@ import torch.nn as nn
 
 
 class ThreeLayerHead(nn.Module):
-
+    """ MLP Head """
     def __init__(self, input_dim, num_classes) -> None:
         super().__init__()
         """

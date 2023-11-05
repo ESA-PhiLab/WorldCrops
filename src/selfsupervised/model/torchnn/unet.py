@@ -1,13 +1,14 @@
+import numpy as np
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from sklearn.metrics import accuracy_score
+from pyparsing import Any
 
 
 class depthwise_separable_conv(nn.Module):
 
-    def __init__(self, nin, kernels_per_layer, nout):
+    def __init__(self, nin, kernels_per_layer, nout) -> None:
         super(depthwise_separable_conv, self).__init__()
         self.depthwise = nn.Conv2d(nin,
                                    nin * kernels_per_layer,
@@ -26,7 +27,7 @@ class depthwise_separable_conv(nn.Module):
 
 class ConvDown(nn.Module):
 
-    def __init__(self, input_dim, output_dim):
+    def __init__(self, input_dim, output_dim) -> None:
         super(ConvDown, self).__init__()
 
         self.conv_block = nn.Sequential(
@@ -67,7 +68,7 @@ class ResidualBridge(nn.Module):
 
 class ResidualUp(nn.Module):
 
-    def __init__(self, input_dim, output_dim):
+    def __init__(self, input_dim, output_dim) -> None:
         super(ResidualUp, self).__init__()
 
         self.conv_skip = nn.Sequential(
@@ -80,7 +81,7 @@ class ResidualUp(nn.Module):
 
 class ConvUp(nn.Module):
 
-    def __init__(self, input_dim, output_dim):
+    def __init__(self, input_dim, output_dim) -> None:
         super(ConvUp, self).__init__()
 
         self.conv_block = nn.Sequential(
@@ -96,10 +97,17 @@ class ConvUp(nn.Module):
 
 
 class ResUnetEncoder(nn.Module):
+    """ ResNet based Unet encoder """
 
-    def __init__(self, channel=1, dropout=0.3, filters=None):
+    def __init__(self, channel=1, dropout=0.3, filters=None) -> None:
         super(ResUnetEncoder, self).__init__()
         args = filters
+        self.pool = nn.MaxPool2d(2)
+        self.down1 = ConvDown(args[0], args[1])
+        self.res1 = ResidualDown(args[0], args[1])
+        self.down2 = ConvDown(args[1], args[2])
+        self.res2 = ResidualDown(args[1], args[2])
+        self.bridge = ResidualBridge(args[2], args[3])
 
         # first layer
         self.input_layer = nn.Sequential(
@@ -109,19 +117,13 @@ class ResUnetEncoder(nn.Module):
 
         self.input_skip = nn.Sequential(
             nn.Conv2d(
-                channel,
-                args[0],
+                in_channels=channel,
+                out_channels=args[0],
                 kernel_size=3,
                 stride=2,
             ))
-        self.pool = nn.MaxPool2d(2)
-        self.down1 = ConvDown(args[0], args[1])
-        self.res1 = ResidualDown(args[0], args[1])
-        self.down2 = ConvDown(args[1], args[2])
-        self.res2 = ResidualDown(args[1], args[2])
-        self.bridge = ResidualBridge(args[2], args[3])
 
-    def forward(self, x):
+    def forward(self, x) -> list[Any]:
         xpad = F.pad(x, [0, 1, 0, 1], mode='replicate')
         x1 = self.input_layer(x)
         x1b = self.pool(x1) + self.input_skip(xpad)
@@ -136,10 +138,10 @@ class ResUnetEncoder(nn.Module):
 
 
 class ResUnetDecoder(nn.Module):
+    """ ResNet based Unet decoder """
 
-    def __init__(self, dropout=0.3, filters=None):
+    def __init__(self, dropout=0.3, filters=None) -> None:
         super(ResUnetDecoder, self).__init__()
-
         args = filters
         self.upsample = nn.Upsample(scale_factor=2, mode='nearest')
         self.res_bridge = ResidualUp(args[2], args[3])
@@ -176,8 +178,9 @@ class ResUnetDecoder(nn.Module):
 
 
 class ResUnet(nn.Module):
+    """ ResNet based Unet with encoder, bridge and decoder """
 
-    def __init__(self, channel, filters=[32, 64, 128, 256], dropout=0.3):
+    def __init__(self, channel, filters=[32, 64, 128, 256], dropout=0.3) -> None:
         super(ResUnet, self).__init__()
 
         # first layer
@@ -241,7 +244,13 @@ class ResUnet(nn.Module):
         return output
 
 
-class UNet_Transfer(pl.LightningModule):
+class UNetTransfer(pl.LightningModule):
+    """ Unet Transfer Learning. Finetune Unet encoder and decoder 
+    Args:
+        backbone: pretrained encoder
+        finetune: if false -> don't update parameters of encoder 
+                    if true > update all parameters (encoder+ decoder)
+    """
 
     def __init__(self,
                  lr=0.0002,
@@ -250,25 +259,18 @@ class UNet_Transfer(pl.LightningModule):
                  filters=[32, 64, 128, 256],
                  batch_size=3,
                  finetune=False,
-                 seed=42):
+                 seed=42) -> None:
         super().__init__()
-        """
-        Args:
-            backbone: pretrained encoder
-            finetune: if false -> don't update parameters of encoder 
-                     if true > update all parameters (encoder+ decoder)
-        """
-
-        self.model_type = 'UNET_Transfer'
-        self.finetune = finetune
+        self.model_type: str = 'UNET_Transfer'
+        self.finetune: bool = finetune
 
         # Hyperparameters
-        self.lr = lr
-        self.batch_size = batch_size
+        self.lr: float = lr
+        self.batch_size: int = batch_size
         self.ce = nn.BCEWithLogitsLoss()  # nn.CrossEntropyLoss()
         self.save_hyperparameters()
 
-        if backbone == None:
+        if backbone is None:
             print('Backbone/head not loaded')
             return
 
@@ -276,7 +278,7 @@ class UNet_Transfer(pl.LightningModule):
         self.encoder = backbone
         self.decoder = ResUnetDecoder(filters=filters, dropout=dropout)
 
-        if self.finetune == False:
+        if self.finetune is False:
             # freeze params of encoder
             for param in self.encoder.parameters():
                 param.requires_grad = False
@@ -302,19 +304,13 @@ class UNet_Transfer(pl.LightningModule):
 
         y_true = y.detach()
         # y_pred = y_pred.argmax(-1).detach()
-        return {'loss': loss, 'y_pred': y_pred, 'y_true': y}
+        return {'loss': loss, 'y_pred': y_pred, 'y_true': y_true}
 
     def training_epoch_end(self, outputs):
-        y_true_list = list()
-        y_pred_list = list()
-        # add here accuracy
-
-        # tried to log and return loss
         # avg_loss = torch.stack([x['loss'] for x in outputs]).mean()
         # logging using tensorboard logger
         # self.logger.experiment.add_scalar("Loss/Train", avg_loss, self.current_epoch)
-        # epoch_dictionary={'loss': avg_loss}
-        # return epoch_dictionary
+        return outputs
 
     def validation_step(self, val_batch, batch_idx):
         x, y = val_batch
@@ -323,9 +319,8 @@ class UNet_Transfer(pl.LightningModule):
         self.logger.experiment.add_scalar('val_loss',
                                           loss,
                                           global_step=self.global_step)
-        y_true = y.detach()
+        # y_true = y.detach()
         return {'val_loss': loss}
-        # pass
 
     def validation_step_end(self, outputs):
         return outputs
@@ -334,9 +329,8 @@ class UNet_Transfer(pl.LightningModule):
         avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
         avg_loss = float(avg_loss)
         dict_ = {'val_loss': avg_loss}
-        print(dict_)
+        # print(dict_)
         return dict_
-        # pass
 
     def configure_optimizers(self):
         if self.finetune:
@@ -351,29 +345,26 @@ class UNet_Transfer(pl.LightningModule):
         y_pred = self.forward(x)
         loss = self.ce(y_pred, y)
         # self.log('train_loss', loss, on_step = True, on_epoch = True, prog_bar=True, logger=True)
-        self.logger.experiment.add_scalar('test_loss',
+        self.logger.experiment.add_scalar('test_loss', # type: ignore
                                           loss,
                                           global_step=self.global_step)
         y_true = y.detach()
-        return {'test_loss': loss, 'y_pred': y_pred, 'y_true': y}
+        return {'test_loss': loss, 'y_pred': y_pred, 'y_true': y_true}
 
     def test_step_end(self, outputs):
         return outputs
 
     def test_epoch_end(self, outputs):
-
+        #print(len(y_pred_list))
+        # acc = accuracy_score(torch.cat(y_true_list).cpu(),torch.cat(y_pred_list).cpu())
+        # Overall accuracy
+        # self.log('OA',round(acc,2), logger=True)
         y_true_list = list()
         y_pred_list = list()
 
         for item in outputs:
             y_true_list.append(item['y_true'])
-            y_pred_list.append(item['y_pred'])
-
-        print(len(y_pred_list))
-
-        # acc = accuracy_score(torch.cat(y_true_list).cpu(),torch.cat(y_pred_list).cpu())
-        # Overall accuracy
-        # self.log('OA',round(acc,2), logger=True)
+            y_pred_list.append(item['y_pred']) 
 
     def evaluate_performance(y_true, y_pred):
 

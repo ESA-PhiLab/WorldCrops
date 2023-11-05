@@ -8,6 +8,8 @@ from lightly.models.modules.heads import SimSiamPredictionHead
 
 
 class SimSiamImages(pl.LightningModule):
+    """ SimSiam implementation for images
+    """
 
     def __init__(self,
                  backbone=nn.Module,
@@ -19,7 +21,7 @@ class SimSiamImages(pl.LightningModule):
                  weight_decay=5e-4,
                  momentum=0.9,
                  epochs=10,
-                 label=False):
+                 label=False) -> None:
         super().__init__()
 
         self.lr = lr
@@ -172,6 +174,7 @@ class SimSiamImages(pl.LightningModule):
 
 
 class SimSiamUNet(pl.LightningModule):
+    """Use a pre-trained unet encoder and finetune it"""
 
     def __init__(self,
                  backbone=nn.Module,
@@ -183,24 +186,24 @@ class SimSiamUNet(pl.LightningModule):
                  weight_decay=5e-4,
                  momentum=0.9,
                  epochs=10,
-                 label=False):
+                 label=False) -> None:
         super().__init__()
 
-        self.lr = lr
-        self.momentum = momentum
-        self.weight_decay = weight_decay
-        self.epochs = epochs
-        self.labels = label
+        self.lr: float = lr
+        self.momentum: float = momentum
+        self.weight_decay: float = weight_decay
+        self.epochs: int = epochs
+        self.labels: bool = label
 
-        self.ce = lightly.loss.NegativeCosineSimilarity()
+        self.ce = lightly.loss.NegativeCosineSimilarity()  # type: ignore
         self.backbone = backbone
-        self.model_type = 'SimSiam_LM'
-        self.projection = lightly.models.modules.heads.ProjectionHead([
+        self.model_type = 'SimSiam with Unet'
+        self.projection = lightly.models.modules.heads.ProjectionHead([  # type: ignore
             (num_ftrs * num_ftrs, proj_hidden_dim,
              nn.BatchNorm1d(proj_hidden_dim), nn.ReLU()),
             (proj_hidden_dim, out_dim, nn.BatchNorm1d(out_dim), None)
         ])
-        self.prediction = lightly.models.modules.heads.SimSiamPredictionHead(
+        self.prediction = lightly.models.modules.heads.SimSiamPredictionHead(  # type: ignore
             out_dim, pred_hidden_dim, out_dim)
 
         # parameters for logging
