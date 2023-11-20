@@ -6,6 +6,8 @@ env_wc/*
 **/logs/*/
 models/*
 
+tests/lightning_logs/
+tests/__pycache__/*
 
 data/iceberg/*
 data/cropdata/France/*
