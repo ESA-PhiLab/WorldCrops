@@ -30,4 +30,5 @@ lightly==1.4.11
 tsaug==0.2.1
 opencv-python==4.6.0.66
 torchsummary==1.5.1
-
+pytest
+pytorch-lightning==1.9.5

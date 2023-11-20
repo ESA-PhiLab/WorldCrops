@@ -4,10 +4,13 @@ import torch.nn as nn
 
 
 class MLP(pl.LightningModule):
-    """ A Multilayer Perceptron with 3 linear layers and Relu activation
-        Args:
-            input_dim: amount of dimensions (width x height x channels)
-            num_classes: amount of target classes
+    """ A Multilayer Perceptron with 3 linear layers and ReLU activation.
+
+    Args:
+        input_dim (int): Amount of dimensions (width x height x channels).
+        num_classes (int): Amount of target classes.
+        lr (float, optional): Learning rate for the optimizer. Defaults to 1e-4.
+
     """
 
     def __init__(self, input_dim, num_classes, lr=1e-4) -> None:
@@ -17,9 +20,11 @@ class MLP(pl.LightningModule):
 
         self.model_type: str = 'MLP based on Pytorch Lightning'
         self.lr: float = lr
-        self.layers = nn.Sequential(nn.Linear(self.input_dim, 64), nn.ReLU(),
-                                    nn.Linear(64, 32), nn.ReLU(),
-                                    nn.Linear(32, self.num_classes))
+        self.layers = nn.Sequential(nn.Linear(in_features=self.input_dim, out_features=64), 
+                                    nn.ReLU(),
+                                    nn.Linear(in_features=64, out_features=32), 
+                                    nn.ReLU(),
+                                    nn.Linear(in_features=32, out_features=self.num_classes))
         self.ce = nn.CrossEntropyLoss()
 
     def forward(self, x):
@@ -30,7 +35,6 @@ class MLP(pl.LightningModule):
         x = x.flatten(1)
         y_pred = self.layers(x)
         loss = self.ce(y_pred, y)
-        self.log('train_loss', loss)
         return loss
 
     def configure_optimizers(self):
@@ -41,4 +45,4 @@ class MLP(pl.LightningModule):
         x, y = val_batch
         y_pred = self.forward(x)
         loss = self.ce(y_pred, y)
-        self.log('val_loss', loss)
+        return loss

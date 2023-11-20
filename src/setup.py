@@ -5,14 +5,9 @@ with open('../requirements.txt') as f:
 
 setup(
     name='selfsupervised',
-    version='0.0.2',
+    version='0.0.3',
     description='Lib for self supervised learning',
     license='MIT',
-    packages=[
-        'selfsupervised', 'selfsupervised.model', 'selfsupervised.processing',
-        'selfsupervised.data', 'selfsupervised.data.croptypes',
-        'selfsupervised.data.yields', 'selfsupervised.data.images'
-    ],
-    # packages=find_packages(,'PackageName.SubModule'),
+    packages=find_packages(),
     install_requires=reqs,
     zip_safe=False)
