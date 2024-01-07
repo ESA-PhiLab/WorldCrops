@@ -24,30 +24,25 @@ change directory
     
 install package  
 
-    python3 setup.py develop 
+    python3 setup.py install
  
  Python example:
     
     ```python
     #import installed package
     import selfsupervised as ssl
-    #examples for a datamodule
-    ssl.data
     ```
 
 
-## Add additional data
+## Data
+The notebooks contain examples for loading yield data from the combine harvester and crop types. The script install_cropdata.sh in scripts/data/ installs several crop type data sources for domain adaptation experiments in different regions. 
+For future experiments with crop types, there are now very interesting processed data sources such as https://www.eurocrops.tum.de/index.html.
 
-The script 'download.py' uses Sentinel Hub to download Sentinel data. More regions are welcome to be added. Configure your layer with Sentinel Hub and add your API keys to credentials.py. The download supports the FisRequest and SentinelHubStatistical from Sentinel Hub. 
+## Paper SELF-SUPERVISED LEARNING
+The paper used crop types data (time series) from Sentinel-2 for Bavaria to train a model using data from 2016 and 2017 and apply it to 2018. Experiments were also run with 5 and 10 percent data from 2018. 2018 has deviating climate conditions compared to 2016 and 2017. Two example python files for reproducing the results can be found under src/experiments/paper.
 
-	python download.py -f ../data/cropdata/CentralAsia/CAWa_CropType_samples.shp -t '{"2018": ["01-01-2018", "30-12-2018"],"2017": ["01-01-2017", "30-12-2017"],"2016": ["01-01-2016", "30-12-2016"]}' -o centralasia 
-
-
-    
-## New data modules for SSL
-
-To include new data, a custom data set or data module must be defined for pytorch lightning.
-(https://pytorch-lightning.readthedocs.io/)
+## Yields
+The yield data at field level were part of the work Prediction of multi-year winter wheat yields and were documented and collected in detailed investigations[4]. The example script notebooks/demo_yields_data shows how to load yield data. This includes data from a combine harvester as well as time series for weather and Sentinel-2 data.    
 
 ## Citation
 These data sets include yields and crop types and were introduced in following publications:

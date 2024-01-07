@@ -1,3 +1,7 @@
+""" Experiments with Hopfield and multivariate time series.
+Hopfield can be used in different variants (trained,untrained) 
+and has the same mathematical properties as Transformers.
+Check: https://ml-jku.github.io/hopfield-layers/"""
 
 import torch
 from torch import nn

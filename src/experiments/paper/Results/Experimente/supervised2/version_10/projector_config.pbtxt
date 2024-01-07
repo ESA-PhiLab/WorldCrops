@@ -1,0 +1,5 @@
+embeddings {
+  tensor_name: "supervised_embedding:00000"
+  metadata_path: "00000/supervised_embedding/metadata.tsv"
+  tensor_path: "00000/supervised_embedding/tensors.tsv"
+}

@@ -1,0 +1,27 @@
+#configuration of the experiments
+
+transformer:
+  input_dim: 9
+  num_classes: 6
+  n_head: 4
+  nlayers: 3
+
+training:
+  batch_size: 256
+  learning_rate: 0.0016612
+  epochs: 1
+  pe: False #positional encoding
+  num_workers: 4
+  test_size: 0.25
+  seed: 42
+  shuffle_dataset: True
+  device: 'cpu'
+
+
+
+
+
+
+
+
+

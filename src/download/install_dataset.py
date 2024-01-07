@@ -57,16 +57,24 @@ def kenya_download():
     print('Kenya downloaded')
 
 
+# define additonal sources
 def uganda_download():
-    print('Uganda downloaded')
+    print('Uganda download not implemented')
 
 
 def ghana_download():
-    print('Ghana downloaded')
+    print('Ghana downloaded not implemented')
 
 
 _root = os.getcwd()
-_root, filename = _root.rsplit('/', 1)
+#_root, filename = _root.rsplit('/', 1)
+# Change to the parent directory
+parent_directory = os.path.dirname(_root)
+os.chdir(parent_directory)
+parent_directory = os.path.dirname(parent_directory)
+os.chdir(parent_directory)
+
+_root = os.getcwd()
 print('Root:', _root)
 
 # create directory structure

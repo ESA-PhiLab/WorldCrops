@@ -1,14 +1,50 @@
 import math
 
-import lightly
+import lightly  # ensure lightly is installed
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
-from lightly.models.modules.heads import SimSiamPredictionHead
+from lightly.models.modules.heads import ProjectionHead, SimSiamPredictionHead
 
 
 class SimSiam(pl.LightningModule):
-    """ SimSiam implementation """
+    """
+    An implementation of the SimSiam architecture using PyTorch Lightning. SimSiam
+    is a self-supervised learning method for learning visual representations without
+    labeled data. It operates by maximizing the similarity between two different
+    augmented views of the same image or time series.
+
+    Attributes:
+        lr (float): Learning rate for the optimizer.
+        momentum (float): Momentum factor for SGD optimizer.
+        weight_decay (float): Weight decay for regularization in the optimizer.
+        epochs (int): Number of training epochs.
+        avg_loss (float): A moving average of the training loss.
+        avg_output_std (float): A moving average of the standard deviation of the
+                                model's outputs, used for monitoring collapse.
+        collapse_level (float): A metric to measure the degree of representation
+                                collapse in the model.
+        out_dim (int): The dimensionality of the output feature vector.
+        loss (lightly.loss.NegativeCosineSimilarity): Loss function based on negative
+                                                    cosine similarity.
+        backbone (nn.Module): Backbone neural network model for feature extraction.
+        projection (lightly.models.modules.heads.ProjectionHead): Projection head 
+                      that maps the features to a lower-dimensional space.
+        prediction (SimSiamPredictionHead): Prediction head of the model that 
+                    predicts the representation of one view from the other.
+
+    Args:
+        backbone (nn.Module): Backbone model for feature extraction. 
+        num_ftrs (int): Number of features in the input tensor expected by the
+                        projection head.
+        proj_hidden_dim (int): Hidden layer dimension in the projection head.
+        pred_hidden_dim (int): Hidden layer dimension in the prediction head.
+        out_dim (int): Output dimension for both the projection and prediction heads.
+        lr (float): Learning rate for the optimizer.
+        weight_decay (float): Weight decay factor for regularization.
+        momentum (float): Momentum factor for the optimizer.
+        epochs (int): Number of epochs (T_max) for CosineAnnealingLR (learning rate will be annealed).
+    """
     def __init__(self,
                  backbone=nn.Module,
                  num_ftrs=64,
@@ -30,10 +66,10 @@ class SimSiam(pl.LightningModule):
         self.collapse_level: float = 0.
         self.out_dim: int = out_dim
 
-        self.ce = lightly.loss.NegativeCosineSimilarity()  # type: ignore
+        self.loss = lightly.loss.NegativeCosineSimilarity()  # type: ignore
         self.backbone = backbone
         self.model_type: str = 'SimSiam based on Pytorch Lightning'
-        self.projection = lightly.models.modules.heads.ProjectionHead([ # type: ignore
+        self.projection = ProjectionHead([
             (num_ftrs, proj_hidden_dim, nn.BatchNorm1d(proj_hidden_dim),
              nn.ReLU()),
             (proj_hidden_dim, out_dim, nn.BatchNorm1d(out_dim), None)
@@ -63,7 +99,7 @@ class SimSiam(pl.LightningModule):
 
         (z0, p0), (z1, p1), embedding = self.forward(x0, x1)
 
-        loss = 0.5 * (self.ce(z0, p1) + self.ce(z1, p0))
+        loss = 0.5 * (self.loss(z0, p1) + self.loss(z1, p0))
 
         # collapse based on https://docs.lightly.ai/tutorials/package/tutorial_simsiam_esa.html
         output = p0.detach()

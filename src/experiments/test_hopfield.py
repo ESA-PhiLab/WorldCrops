@@ -4,11 +4,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
-import torch as nn
+import torch.nn as nn
 import yaml
 from sklearn.model_selection import train_test_split
 
 import selfsupervised
+from selfsupervised.data.croptypes import (AugmentationExperiments,
+                                           BavariaDataModule)
 from selfsupervised.processing import utils
 
 utils.seed_torch()
@@ -34,18 +36,17 @@ _gpu = cfg["pretraining"]['gpus']
 # %%
 
 # %%
-
 # %%
 # load data for bavaria
 # experiment with train/test split for all data
-dm_bavaria = selfsupervised.data.croptypes.BavariaDataModule(
+dm_bavaria = BavariaDataModule(
     data_dir='../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx',
     batch_size=batch_size_pre,
     num_workers=4,
     experiment='Experiment1')
 
 # data for invariance between crops
-dm_crops1 = selfsupervised.data.croptypes.AugmentationExperiments(
+dm_crops1 = AugmentationExperiments(
     data_dir='../../data/cropdata/Bavaria/sentinel-2/Training_bavaria.xlsx',
     batch_size=batch_size_pre,
     num_workers=4,

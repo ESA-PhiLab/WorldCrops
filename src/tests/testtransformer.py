@@ -4,9 +4,9 @@ import pytest
 import pytorch_lightning as pl
 import torch
 
-from selfsupervised.model.lightning.transformerencoder import \
+from selfsupervised.model.lightning.transformer_encoder import \
     TransformerEncoder as TE2
-from selfsupervised.model.torchnn.transformerencoder import \
+from selfsupervised.model.torchnn.transformer_encoder import \
     TransformerEncoder as TE1
 
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
