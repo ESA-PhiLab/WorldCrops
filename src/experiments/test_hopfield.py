@@ -8,14 +8,13 @@ import torch.nn as nn
 import yaml
 from sklearn.model_selection import train_test_split
 
-import selfsupervised
-from selfsupervised.data.croptypes import (AugmentationExperiments,
-                                           BavariaDataModule)
+from selfsupervised.data.croptypes.datamodules import (AugmentationExperiments,
+                                                       BavariaDataModule)
 from selfsupervised.processing import utils
 
 utils.seed_torch()
 
-with open("../../config/croptypes/param_year_invarianz.yaml", "r") as ymlfile:
+with open("../../config/croptypes/param_pretraining.yaml", "r") as ymlfile:
     cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
 
 batch_size_pre = cfg["pretraining"]['batch_size']
@@ -31,11 +30,7 @@ lr_pre = cfg["pretraining"]['learning_rate']
 epochs_pre = cfg["pretraining"]['epochs']
 _gpu = cfg["pretraining"]['gpus']
 # %%
-# %%
 
-# %%
-
-# %%
 # %%
 # load data for bavaria
 # experiment with train/test split for all data
@@ -54,8 +49,6 @@ dm_crops1 = AugmentationExperiments(
 
 # %%
 # create artificail sin cos dataset with 3 classes
-
-
 seed = 12345512
 np.random.seed(seed)
 
@@ -91,8 +84,6 @@ bavaria_data = utils.rewrite_id_CustomDataSet(bavaria_data)
 bavaria_data
 
 # %%
-
-
 class HopfieldSampling(nn.Module):
     '''
    Mapping of N samples from year X onto n samples from year Y.
@@ -171,12 +162,6 @@ def getall2018(data, feature, year, time_steps):
 
 
 # %%
-# zutun base samples müssen immer gleich bleiben
-# vllt R2 einfuehren um mit allen aus 2018 zu vergleichen ?
-# schauen ob ein sample abfragen mehr variation bringt?
-# es werden sovile sample in mapped erzeugt wie man für known einbringt
-# ich würde sagen auf einer seite hopfield und auf anderer
-
 croptype = 1
 
 known = bavaria_data[(bavaria_data.Year == 2016)

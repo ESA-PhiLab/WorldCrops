@@ -29,3 +29,4 @@ opencv-python==4.6.0.66
 torchsummary==1.5.1
 pytest==7.4.3
 pytorch-lightning==1.9.5
+tensorboard==2.15.1

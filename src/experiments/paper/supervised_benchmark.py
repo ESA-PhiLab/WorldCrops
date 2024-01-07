@@ -226,7 +226,7 @@ trainer.test(model4, datamodule=dm_bavaria4)
 # hier parameter festlegen
 # RF:
 _n_estimators = 1000
-_max_features = 'auto'
+_max_features = 'sqrt'
 _J = 0
 _test_size = 0.25
 _cv = KFold(n_splits=5, shuffle=True, random_state=_J)
@@ -282,7 +282,7 @@ disp = ConfusionMatrixDisplay.from_predictions(
 # hier parameter festlegen
 # RF:
 _n_estimators = 1000
-_max_features = 'auto'
+_max_features = 'sqrt'
 _J = 0
 _test_size = 0.25
 _cv = KFold(n_splits=5, shuffle=True, random_state=_J)
@@ -326,7 +326,7 @@ confusion['y_test'] = y_test.values
 # hier parameter festlegen
 # RF:
 _n_estimators = 1000
-_max_features = 'auto'
+_max_features = 'sqrt'
 _J = 0
 _test_size = 0.25
 _cv = KFold(n_splits=5, shuffle=True, random_state=_J)
@@ -384,7 +384,7 @@ confusion['y_test'] = y_test.values
 # hier parameter festlegen
 # RF:
 _n_estimators = 1000
-_max_features = 'auto'
+_max_features = 'sqrt'
 _J = 0
 _test_size = 0.25
 _cv = KFold(n_splits=5, shuffle=True, random_state=_J)

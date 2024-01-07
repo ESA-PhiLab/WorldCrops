@@ -20,6 +20,9 @@ data/cropdata/Kenya/ref_african_crops_kenya_01_labels/*
 data/cropdata/Kenya/ref_african_crops_kenya_01_source/*
 data/cropdata/Bavaria/yields/backup/*
 
+#experiments
+src/experiments/paper/lightning_logs/*
+src/experiments/paper/Results/*
 
 #package 
 src/build/*
@@ -27,8 +30,6 @@ src/dist/*
 src/.pytest_cache
 src/WorldCrops.egg-info
 src/selfsupervised/download/*
-src/selfsupervised/experiments/paper/lightning_logs
-src/selfsupervised/experiments/paper/Results
 src/selfsupervised/data/model/__pycache__/*
 src/selfsupervised/data/model/lightning/__pycache__/*
 src/selfsupervised/data/model/torchnn/__pycache__/*
