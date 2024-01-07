@@ -27,7 +27,7 @@ The script installs all crop type data. If the data is downloaded again, the dat
 The Kenya data comes from Radiant Earth which is why an api key is needed. All keys are summarized under 'download/credentials.py'. Only the MLHUB_API_KEY for https://mlhub.earth/ is needed! 
 The French dataset is downloaded via https://breizhcrops.org/, which also offers some additional great features.
 
-    sh data/install_cropdata.sh
+    sh install_cropdata.sh
 
 
 Please note! The src/download section is experimental to download new data via Sentinel Hub or to install the crop types timeseries. 
@@ -46,5 +46,3 @@ The labels for the crop types come from different sources and have been summaris
 | Uzbekistan | < 8196| 2016-2018 | S2 L1C/L2A| cotton, wheat, rice, maize, orchards, vineyards, alfalfa| [[3]](#https://www.nature.com/articles/s41597-020-00591-2)|
 
  
-
-https://user-images.githubusercontent.com/11621580/156671879-29a19fa6-c09b-4eec-a389-6683a578f1cb.mp4?width=100&height=100

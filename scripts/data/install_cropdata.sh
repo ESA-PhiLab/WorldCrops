@@ -1,3 +1,3 @@
 #!/bin/sh
 
-python ../src/download/install_dataset.py
+python ../../src/download/install_dataset.py

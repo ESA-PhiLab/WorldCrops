@@ -4,7 +4,7 @@
 <img src="https://user-images.githubusercontent.com/11621580/177815096-f5936f2c-7942-4ebe-971a-38afbc2b5471.png" width="250" height="300" /> <img src="https://media.giphy.com/media/dFCkbzISh2IZWLdj7S/giphy.gif" width="250" height="300" /> <img src="https://user-images.githubusercontent.com/11621580/177831311-5aa2a302-3b85-4d8a-af2f-fe01a9531bf0.gif" width="300" height="300">
 </div>
 
-## Environment setup for Python3
+## Environment setup for Python 3.11
 
 Create a new virtual environment with
 
@@ -24,30 +24,20 @@ change directory
     
 install package  
 
-    python3 setup.py develop 
+    python setup.py install
  
- Python example:
-    
-    ```python
-    #import installed package
-    import selfsupervised as ssl
-    #examples for a datamodule
-    ssl.data
-    ```
 
 
-## Add additional data
 
-The script 'download.py' uses Sentinel Hub to download Sentinel data. More regions are welcome to be added. Configure your layer with Sentinel Hub and add your API keys to credentials.py. The download supports the FisRequest and SentinelHubStatistical from Sentinel Hub. 
+## Data
+The notebooks directory contains examples for yield and crop types data. The script install_cropdata.sh in scripts/data/ installs several data sources for crop types from different climate regions for domain adaptation experiments. 
+For future experiments with crop types, there is now very interesting benchmark data such as EuroCrops[6].
 
-	python download.py -f ../data/cropdata/CentralAsia/CAWa_CropType_samples.shp -t '{"2018": ["01-01-2018", "30-12-2018"],"2017": ["01-01-2017", "30-12-2017"],"2016": ["01-01-2016", "30-12-2016"]}' -o centralasia 
+## Paper self-supervised learning
+The paper used crop types data (time series) from Sentinel-2 for Bavaria to train a model using data from 2016 and 2017 and apply it to 2018. Experiments were also run with 5 and 10 percent data from 2018. 2018 has deviating climate conditions compared to 2016 and 2017. Two example python files for reproducing the results can be found under src/experiments/paper.
 
-
-    
-## New data modules for SSL
-
-To include new data, a custom data set or data module must be defined for pytorch lightning.
-(https://pytorch-lightning.readthedocs.io/)
+## Yields
+The yield data at field level were part of the work 'Prediction of multi-year winter wheat yields...' and were documented and collected in detailed investigations [4]. The example notebooks/demo_yields_data shows how to load yield data. It includes data from a combine harvester as well as time series for weather and Sentinel-2 data. The notebook yield_pred_pixel predicts the yields at pixel level. The additional high accuracy weighted data for each field is also available to investigate field level predictions or to compare with the combine harvester data. Mainly winter wheat was considered, but some winter barley yields are also available. 
 
 ## Citation
 These data sets include yields and crop types and were introduced in following publications:
@@ -81,4 +71,5 @@ These data sets include yields and crop types and were introduced in following p
 [2] Radiant Earth Foundation, https://www.radiant.earth/ <br/>
 [3] Remelgado, R., Zaitov, S., Kenjabaev, S. et al. A crop type dataset for consistent land cover classification in Central Asia. Sci Data 7, 250 (2020). https://doi.org/10.1038/s41597-020-00591-2 <br/>
 [4] Chair of Plant Nutrition, TUM, https://www.pe.wzw.tum.de/ <br/>
-[5] Lightly, https://www.lightly.ai/
+[5] Lightly, https://www.lightly.ai/ <br/>
+[6] EuroCrops, https://www.eurocrops.tum.de/index.html
