@@ -35,7 +35,9 @@ src/selfsupervised/data/model/lightning/__pycache__/*
 src/selfsupervised/data/model/torchnn/__pycache__/*
 src/selfsupervised/__pycache__/*
 
-notebooks/demo_yields_new.ipynb
+notebooks/__pycache__/*
+
+#notebooks/demo_yields_new.ipynb
 
 hidden/*
 .vscode/*
