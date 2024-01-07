@@ -28,7 +28,7 @@ install package
  
 ## Data
 The notebooks directory contains examples for yield and crop types data. The script install_cropdata.sh in scripts/data/ installs several data sources for crop types from different climate regions for domain adaptation experiments. 
-For future experiments with crop types, there is now very interesting benchmark data such as EuroCrops[6].
+Nevertheless, the dataset was not expanded due to emerging data sources. For future experiments with crop types, there is now very interesting benchmark data such as EuroCrops [6].
 
 ## Paper self-supervised learning
 The paper used crop types data (time series) from Sentinel-2 for Bavaria to train a model using data from 2016 and 2017 and apply it to 2018. Experiments were also run with 5 and 10 percent data from 2018. 2018 has deviating climate conditions compared to 2016 and 2017. Two example python files for reproducing the results can be found under src/experiments/paper.
