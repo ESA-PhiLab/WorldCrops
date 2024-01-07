@@ -37,7 +37,7 @@ src/selfsupervised/__pycache__/*
 
 notebooks/__pycache__/*
 
-#notebooks/demo_yields_new.ipynb
+notebooks/demo_yields_new.ipynb
 
 hidden/*
 .vscode/*

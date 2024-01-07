@@ -26,9 +26,6 @@ install package
 
     python setup.py install
  
-
-
-
 ## Data
 The notebooks directory contains examples for yield and crop types data. The script install_cropdata.sh in scripts/data/ installs several data sources for crop types from different climate regions for domain adaptation experiments. 
 For future experiments with crop types, there is now very interesting benchmark data such as EuroCrops[6].
