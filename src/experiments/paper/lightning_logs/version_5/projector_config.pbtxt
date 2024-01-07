@@ -1,5 +1,0 @@
-embeddings {
-  tensor_name: "pretraining embedding:00000"
-  metadata_path: "00000/pretraining embedding/metadata.tsv"
-  tensor_path: "00000/pretraining embedding/tensors.tsv"
-}
