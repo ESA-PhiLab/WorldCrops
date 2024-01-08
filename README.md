@@ -31,10 +31,10 @@ The notebooks directory contains examples for yield and crop types data. The scr
 Nevertheless, the dataset was not expanded due to emerging data sources. For future experiments with crop types, there is now very interesting benchmark data such as EuroCrops [6].
 
 ## Paper self-supervised learning
-The paper used crop types data (time series) from Sentinel-2 for Bavaria to train a model using data from 2016 and 2017 and apply it to 2018. Experiments were also run with 5 and 10 percent data from 2018. 2018 has deviating climate conditions compared to 2016 and 2017. Two example python files for reproducing the results can be found under src/experiments/paper.
+The paper used crop type data (time series) from Sentinel-2 for Bavaria to train a model using data from 2016 and 2017 and apply it to 2018. Experiments were also run with 5 and 10 percent data from 2018. 2018 has deviating climate conditions compared to 2016 and 2017. Two example python files for reproducing the results can be found under src/experiments/paper.
 
 ## Yields
-The yield data at field level were part of the work 'Prediction of multi-year winter wheat yields...' and were documented and collected in detailed investigations [4]. The example 'notebooks/demo_yields_data.ipynb' shows how to load yield data. It includes data from a combine harvester as well as time series for weather and Sentinel-2 data. The notebook 'yield_pred_pixel.ipynb' predicts the yields at pixel level. The additional high-precision weighed data for each field is also available to investigate field-level predictions or compare with combine harvester yields. Mainly winter wheat was considered, but some winter barley yields are also available. 
+The yield data at the field level were part of the publication 'Prediction of multi-year winter wheat yields...' and were documented and collected in detailed investigations [4]. The example 'notebooks/demo_yields_data.ipynb' shows how to load yield data. It includes data from a combine harvester as well as time series for weather and Sentinel-2 data. The notebook 'yield_pred_pixel.ipynb' predicts yields for each pixel. In addition to the combine harvester data, high-precision weighed yield data is also available for each field to investigate predictions at the field level or to compare with combine harvester yields. Mainly winter wheat was considered, but some winter barley yields are also available. 
 
 ## Citation
 These data sets include yields and crop types and were introduced in following publications:
@@ -69,4 +69,4 @@ These data sets include yields and crop types and were introduced in following p
 [3] Remelgado, R., Zaitov, S., Kenjabaev, S. et al. A crop type dataset for consistent land cover classification in Central Asia. Sci Data 7, 250 (2020). https://doi.org/10.1038/s41597-020-00591-2 <br/>
 [4] Chair of Plant Nutrition, TUM, https://www.pe.wzw.tum.de/ <br/>
 [5] Lightly, https://www.lightly.ai/ <br/>
-[6] EuroCrops, https://www.eurocrops.tum.de/index.html
+[6] EuroCrops, https://www.eurocrops.tum.de/index.html <br/>
